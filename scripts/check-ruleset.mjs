@@ -14,6 +14,7 @@ const [rulesets, effective] = await Promise.all([get('/rulesets'), get('/rules/b
 const matches = rulesets.filter(({ name, source }) => name === desired.name && source === REPOSITORY);
 assert.equal(matches.length, 1, 'Expected a single frontend-only Ruleset');
 const [{ id: rulesetId }] = matches;
+assert.equal(rulesetId, desired.id, "Unexpected frontend Ruleset ID");
 const actual = await get(`/rulesets/${rulesetId}`);
 for (const field of ['source', 'target', 'enforcement']) {
   assert.equal(actual[field], field === 'source' ? REPOSITORY : desired[field]);
