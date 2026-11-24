@@ -11,7 +11,7 @@ bun install --frozen-lockfile
 bun run verify-all
 ```
 
-验证包括 Authority、API 合同、Spec 治理、TypeScript 和自动化自测。对候选分支校验实际差异时使用 `GOVERNANCE_BASE=<exact-main-sha> bun run governance:check --remote`。正式 CI 针对候选 head 运行。Application build、后端联调、E2E、视觉和真机为 DEFERRED，由适用 Slice 启用。本轮没有应用入口或运行环境变量依赖。
+验证包括 Authority、API 合同、Spec 治理、TypeScript 和自动化自测。对候选分支校验实际差异时使用 `GOVERNANCE_BASE=<exact-main-sha> bun run governance:check --remote`。正式 CI 针对候选 head 运行。Application build、后端联调、E2E、视觉和真机为 DEFERRED，由适用 Slice 启用。当前基线尚未包含正式应用入口或运行环境变量依赖。
 
 ## Spec Kit
 
