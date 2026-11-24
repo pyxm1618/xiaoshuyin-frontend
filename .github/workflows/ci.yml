@@ -1,0 +1,60 @@
+name: Frontend Verification
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-verification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Spec Governance
+            command: node scripts/governance.mjs --remote
+          - name: Authority Integrity
+            command: bun run authority:check
+          - name: Contract Check
+            command: bun run contract:check
+          - name: Static Checks
+            command: bun run typecheck
+          - name: Governance Self-tests
+            command: bun run test
+          - name: Bootstrap Verification
+            command: bun run verify-all
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.4.4'
+      - run: bun install --frozen-lockfile
+      - name: Verify checked-out revision
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - run: ${{ matrix.command }}
+        env:
+          GOVERNANCE_BASE: ${{ github.event.pull_request.base.sha }}
+      - name: Verify active frontend Ruleset
+        if: matrix.name == 'Spec Governance'
+        run: node scripts/check-ruleset.mjs

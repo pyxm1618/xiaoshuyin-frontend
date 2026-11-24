@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "units": [
+    {
+      "id": "PRODUCT",
+      "path": "Docs/总产品需求.md",
+      "owner": "imported"
+    },
+    {
+      "id": "ARCHITECTURE",
+      "path": "Docs/总体技术架构.md",
+      "owner": "imported"
+    },
+    {
+      "id": "V1-PRODUCT",
+      "path": "Docs/V1产品需求.md",
+      "owner": "imported"
+    },
+    {
+      "id": "V1-TECHNICAL",
+      "path": "Docs/V1技术设计.md",
+      "owner": "imported"
+    },
+    {
+      "id": "FE-DESIGN",
+      "path": "Docs/frontend/README.md",
+      "owner": "imported"
+    },
+    {
+      "id": "FE-EXPERIENCE",
+      "path": "Docs/frontend/experience/V1前端体验原则.md",
+      "owner": "imported"
+    },
+    {
+      "id": "FE-IA",
+      "path": "Docs/frontend/information-architecture/V1前端信息架构.md",
+      "owner": "imported"
+    },
+    {
+      "id": "FE-INTERACTION",
+      "path": "Docs/frontend/interaction/V1关键状态与体验模型.md",
+      "owner": "imported"
+    },
+    {
+      "id": "FE-SCREENS",
+      "path": "Docs/frontend/screens/V1页面与屏幕架构.md",
+      "owner": "imported"
+    },
+    {
+      "id": "FE-ENGINEERING",
+      "path": "Docs/frontend/engineering/V1前端工程技术设计.md",
+      "owner": "frontend"
+    },
+    {
+      "id": "FE-DELIVERY",
+      "path": "Docs/frontend/engineering/V1前端开发与验收规范.md",
+      "owner": "frontend"
+    },
+    {
+      "id": "FE-INTEGRATION",
+      "path": "Docs/frontend/engineering/前后端合同与集成规范.md",
+      "owner": "frontend"
+    }
+  ]
+}

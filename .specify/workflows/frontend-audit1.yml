@@ -1,0 +1,23 @@
+schema_version: "1.0"
+workflow:
+  id: frontend-audit1
+  name: Frontend Audit 1 handoff
+  version: "1.0.0"
+  description: Validate the Spec Kit prerequisites and pause for Plan AI 2.
+requires:
+  speckit_version: ">=1.2.1"
+steps:
+  - id: prerequisites
+    type: shell
+    run: bash .specify/scripts/bash/check-prerequisites.sh --require-tasks --include-tasks
+  - id: planning-evidence
+    type: shell
+    run: test -n "$SPECIFY_FEATURE_DIRECTORY" && test -s "$SPECIFY_FEATURE_DIRECTORY/checklist.md" && test -s "$SPECIFY_FEATURE_DIRECTORY/analyze.md"
+  - id: governance
+    type: shell
+    run: bun run governance:check
+  - id: audit1
+    type: gate
+    message: "Record Plan AI 2 Audit 1 against the current frozen Spec, plan, checklist, tasks and analysis before implementation."
+    options: [approve, reject]
+    on_reject: abort
