@@ -5,7 +5,17 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { PATHS, SOURCE, verifySnapshot } from '../scripts/upstream.mjs';
+import {
+  PATHS,
+  SOURCE,
+  githubGet as upstreamGithubGet,
+  githubHeaders as upstreamGithubHeaders,
+  verifySnapshot,
+} from '../scripts/upstream.mjs';
+import {
+  githubGet as rulesetGithubGet,
+  githubHeaders as rulesetGithubHeaders,
+} from '../scripts/check-ruleset.mjs';
 import { engineeringApproval, planDigest, planningFiles } from '../scripts/governance-policy.mjs';
 import { REPOSITORY, validateGovernance } from '../scripts/governance.mjs';
 
@@ -585,4 +595,64 @@ test('FE-B4-F03 the locked compiler detects type errors and governance protects 
   f.commit();
   assert.equal(await f.validate({base: configBase}), 1);
   assert.equal(checkTypes().status, 0);
+});
+
+
+test('GitHub API helpers use optional authentication without leaking tokens', async () => {
+  const token = 'synthetic-ci-token';
+  const apiUrl = 'https://api.github.com/repos/pyxm1618/xiaoshuyin';
+  const rawUrl = 'https://raw.githubusercontent.com/pyxm1618/xiaoshuyin/fixture/file';
+
+  const anonymousUpstream = upstreamGithubHeaders(apiUrl, '');
+  assert.equal(anonymousUpstream.Authorization, undefined);
+  assert.equal(anonymousUpstream.Accept, 'application/vnd.github+json');
+  assert.equal(anonymousUpstream['User-Agent'], 'xiaoshuyin-frontend-governance');
+
+  const authenticatedUpstream = upstreamGithubHeaders(apiUrl, token);
+  assert.equal(authenticatedUpstream.Authorization, `Bearer ${token}`);
+  assert.equal(upstreamGithubHeaders(rawUrl, token).Authorization, undefined);
+
+  const anonymousRuleset = rulesetGithubHeaders('');
+  assert.equal(anonymousRuleset.Authorization, undefined);
+  assert.equal(anonymousRuleset.Accept, 'application/vnd.github+json');
+  assert.equal(anonymousRuleset['User-Agent'], 'xiaoshuyin-frontend-governance');
+  assert.equal(rulesetGithubHeaders(token).Authorization, `Bearer ${token}`);
+
+  let upstreamOptions;
+  await upstreamGithubGet(apiUrl, {
+    token: '',
+    timeout: 1000,
+    fetchImpl: async (_url, options) => {
+      upstreamOptions = options;
+      return new Response('{}', {status: 200, headers: {'Content-Type': 'application/json'}});
+    },
+  });
+  assert.equal(upstreamOptions.headers.Authorization, undefined);
+
+  let rulesetOptions;
+  await rulesetGithubGet('/rulesets', {
+    token,
+    timeout: 1000,
+    fetchImpl: async (_url, options) => {
+      rulesetOptions = options;
+      return new Response('[]', {status: 200, headers: {'Content-Type': 'application/json'}});
+    },
+  });
+  assert.equal(rulesetOptions.headers.Authorization, `Bearer ${token}`);
+
+  const forbidden = async () => new Response(null, {status: 403});
+  await assert.rejects(
+    upstreamGithubGet(apiUrl, {token, fetchImpl: forbidden, timeout: 1000}),
+    (error) => {
+      assert.doesNotMatch(error.message, new RegExp(token));
+      return true;
+    },
+  );
+  await assert.rejects(
+    rulesetGithubGet('/rulesets', {token, fetchImpl: forbidden, timeout: 1000}),
+    (error) => {
+      assert.doesNotMatch(error.message, new RegExp(token));
+      return true;
+    },
+  );
 });
