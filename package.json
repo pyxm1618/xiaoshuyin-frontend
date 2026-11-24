@@ -1,0 +1,17 @@
+{
+  "name": "xiaoshuyin-frontend",
+  "private": true,
+  "type": "module",
+  "engines": {"node": "26.13.0"},
+  "packageManager": "bun@1.4.4",
+  "scripts": {
+    "authority:check": "node scripts/upstream.mjs authority",
+    "contract:check": "node scripts/upstream.mjs contract",
+    "contract:preview": "node scripts/upstream.mjs preview",
+    "governance:check": "node scripts/governance.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'tests/**/*.test.mjs'",
+    "verify-all": "node scripts/verify-all.mjs"
+  },
+  "devDependencies": {"typescript": "5.9.3"}
+}

@@ -1,0 +1,6 @@
+{
+  "schemaVersion":1,
+  "repository":"pyxm1618/xiaoshuyin-frontend",
+  "mode":"git-history-and-current-delta",
+  "evidenceFiles":[".specify/change-binding.json",".specify/task-evidence.json"]
+}

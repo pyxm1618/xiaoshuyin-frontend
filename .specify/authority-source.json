@@ -1,0 +1,69 @@
+{
+  "sourceRepository": "pyxm1618/xiaoshuyin",
+  "sourceCommit": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
+  "files": [
+    {
+      "sourcePath": "Docs/V1产品需求.md",
+      "sourceBlob": "379cb8cfb377924cd21ccfe55baa5aecdf207f5e",
+      "destinationPath": "Docs/V1产品需求.md",
+      "sha256": "49da7b153d4ce85839dfa08ea526936457ba4d0ef6005a608a7276c6ee050cc4",
+      "classification": "upstream-authority"
+    },
+    {
+      "sourcePath": "Docs/V1技术设计.md",
+      "sourceBlob": "afef9fcc4af41b6137e5020717135972a3d515fc",
+      "destinationPath": "Docs/V1技术设计.md",
+      "sha256": "5b5ceb3ca6bafaca2c9c0a3e6706a1a7d70a349dbc2648857c7e150b26fd0cc9",
+      "classification": "upstream-authority"
+    },
+    {
+      "sourcePath": "Docs/frontend/README.md",
+      "sourceBlob": "ee7493ccb929ff341471384f9e3762e457ecf912",
+      "destinationPath": "Docs/frontend/README.md",
+      "sha256": "48beca62b3f7a316d162b1741bda01bfa5f30d25e53e5caf3c7c593e6f1aa6e0",
+      "classification": "frontend-experience"
+    },
+    {
+      "sourcePath": "Docs/frontend/experience/V1前端体验原则.md",
+      "sourceBlob": "d0f14d74be70f9643fc7952b1430de3ba9a568b9",
+      "destinationPath": "Docs/frontend/experience/V1前端体验原则.md",
+      "sha256": "483c915d165dcc11fc9d253b789248c0eeccc87365b8e9ac6903d365b2c6e033",
+      "classification": "frontend-experience"
+    },
+    {
+      "sourcePath": "Docs/frontend/information-architecture/V1前端信息架构.md",
+      "sourceBlob": "bb2d6792582546eed625be796dedd45ce3d84435",
+      "destinationPath": "Docs/frontend/information-architecture/V1前端信息架构.md",
+      "sha256": "d550efc779a6502c078a9453c81a99eca4e06162e5b62290ba81fcfbfbd7a1f2",
+      "classification": "frontend-experience"
+    },
+    {
+      "sourcePath": "Docs/frontend/interaction/V1关键状态与体验模型.md",
+      "sourceBlob": "3c18b1639ceed5f36535f89dbbf1acf1205ad00b",
+      "destinationPath": "Docs/frontend/interaction/V1关键状态与体验模型.md",
+      "sha256": "dcad0d4de40cac64af2dc5a88fed79576c657006ec0ef4a8137738c456846acf",
+      "classification": "frontend-experience"
+    },
+    {
+      "sourcePath": "Docs/frontend/screens/V1页面与屏幕架构.md",
+      "sourceBlob": "9bd87ad1a8dc27a07471d67c30cd3fd8e1b600fd",
+      "destinationPath": "Docs/frontend/screens/V1页面与屏幕架构.md",
+      "sha256": "988802f743c2163f2a9d8d741a6ee3a583d57d46707043555c438cc6c464f72f",
+      "classification": "frontend-experience"
+    },
+    {
+      "sourcePath": "Docs/总产品需求.md",
+      "sourceBlob": "97c69bb8d9c7c42070f5763fe81a3ab1ae2ecf29",
+      "destinationPath": "Docs/总产品需求.md",
+      "sha256": "341d45fee7e4d3afe600e217c96c0e9ef64c7beff0d4e180e3e46f899361a072",
+      "classification": "upstream-authority"
+    },
+    {
+      "sourcePath": "Docs/总体技术架构.md",
+      "sourceBlob": "6b4630803f371faf6d93f27361070223d0f661a0",
+      "destinationPath": "Docs/总体技术架构.md",
+      "sha256": "c0c82a91c3a57218b6c87022930d3af46375f79df992b98425cda8894057f823",
+      "classification": "upstream-authority"
+    }
+  ]
+}

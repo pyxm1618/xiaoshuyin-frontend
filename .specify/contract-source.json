@@ -1,0 +1,24 @@
+{
+  "sourceRepository": "pyxm1618/xiaoshuyin",
+  "sourceCommit": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
+  "files": [
+    {
+      "sourcePath": "packages/generated/openapi.d.ts",
+      "sourceBlob": "9bdb77f6adb3dc402451f41b3e8bf1fbfa9c3f72",
+      "destinationPath": "packages/generated/openapi.d.ts",
+      "sha256": "8a25157ee84130365ae89c05d83d3dd727853501557ded371ebcb5d1a8380a74",
+      "classification": "api-contract"
+    },
+    {
+      "sourcePath": "packages/generated/openapi.json",
+      "sourceBlob": "0267f85d31c99fe5dc0aaca1a618266c532cd14c",
+      "destinationPath": "packages/generated/openapi.json",
+      "sha256": "7082cfe5b6e6d322a095b3e219a6a4dc423e5d261d30d1eb6f0744072f1738b4",
+      "classification": "api-contract"
+    }
+  ],
+  "version": {
+    "openapi": "3.1.0",
+    "info": "0.1.0-plan"
+  }
+}
