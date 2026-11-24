@@ -1,6 +1,6 @@
 # 小树荫前端开发宪法
 
-版本 1.0.0 候选，等待 FE-B4 独立审计。
+版本 1.0.0。Frontend Engineering Bootstrap 已关闭，Engineering Foundation 已冻结；正式前端开发尚未授权。
 
 1. **Authority First**。产品、架构和冻结体验来自后端主仓的正式版本。在本仓显式绑定、原样导入并验证来源。
 2. **One Source of Truth**。服务端拥有领域事实、Case、Scene、流程资格、专业判断、安全、合规与授权；前端投影授权事实。API 类型从官方合同生成。
