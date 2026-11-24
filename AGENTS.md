@@ -14,4 +14,4 @@
 
 按 FE-Slice 的范围、非目标、明确依赖、Allowed / Forbidden Paths 和真实验收执行。不扩大任务、绕过保护、降低断言、套用历史 PASS 或生成虚假结果。不要复制真实家庭数据或凭证；避免敏感日志，测试用合成数据和隔离环境。按实际范围执行工程、合同、体验、视觉、真机验收。证据随 head 变化需要重新复核。遇到未知仓库、上游冲突、缺失真实依赖、越权或无法验证时停止并报告。
 
-Bootstrap 仅工程与治理，下一阶段为独立 FE-B4。Bootstrap 执行者不得自行审计或合并候选 PR。
+Frontend Engineering Bootstrap 已关闭，Engineering Foundation 已冻结；正式前端开发尚未授权。未来开发仍遵循上述四 AI 流程，Developer AI 不得完成自己的 Audit 2。
