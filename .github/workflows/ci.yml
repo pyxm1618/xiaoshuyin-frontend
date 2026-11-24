@@ -52,9 +52,19 @@ jobs:
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
-      - run: ${{ matrix.command }}
+      - name: Run verification command
+        if: matrix.name != 'Spec Governance'
+        run: ${{ matrix.command }}
         env:
           GOVERNANCE_BASE: ${{ github.event.pull_request.base.sha }}
+      - name: Run verification command with GitHub API authentication
+        if: matrix.name == 'Spec Governance'
+        run: ${{ matrix.command }}
+        env:
+          GOVERNANCE_BASE: ${{ github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Verify active frontend Ruleset
         if: matrix.name == 'Spec Governance'
         run: node scripts/check-ruleset.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
