@@ -48,16 +48,16 @@ function fixture(t, { audit = true, shared = false, missingPlanArtifact } = {}) 
     [applicationPath]: [feature], [testPath]: [feature], ...(shared && {'package.json': [feature]}) } });
   const base = commit();
   const validate = (options = {}) => validateGovernance(root, { base, repository: REPOSITORY, ...options });
-  const delivery = (lawful = true) => {
+  const delivery = (lawful = true, deliveryBase = base) => {
     const code = lawful ? applicationPath : 'apps/miniprogram/unauthorized.ts';
     write(code, 'export {};\n');
     write(testPath, 'import { test } from "node:test"; import assert from "node:assert/strict"; test("fixture", () => assert.equal(typeof 1, "number"));\n');
-    write(`${folder}/tasks.md`, `- [x] ${taskLine}\n`);
+    write(`${folder}/tasks.md`, read(`${folder}/tasks.md`).toString().replace(/^- \[ \] T001 /m, '- [x] T001 '));
     if (shared) json('package.json', {...JSON.parse(read('package.json')), description: 'Synthetic shared tooling edit'});
     const paths = [code, testPath, ...(shared ? ['package.json'] : [])];
     json(bindingPath, { repository: REPOSITORY, feature, kind: shared ? 'shared-engineering' : 'implementation',
       files: Object.fromEntries(paths.map((path) => [path, digest(read(path))])) });
-    json(evidencePath, { repository: REPOSITORY, feature, base, binding: digest(read(bindingPath)),
+    json(evidencePath, { repository: REPOSITORY, feature, base: deliveryBase, binding: digest(read(bindingPath)),
       tasks: { T001: { taskDigest: digest(taskLine), files: paths } } });
   };
   return { root, write, json, read, spec, commit, validate, delivery, base };
@@ -171,6 +171,7 @@ test('F01 engineering Authority edits require a prior exact-byte approval', asyn
   const approvedBase = f.commit();
   assert.equal(await f.validate(), 1);
   f.write(path, after);
+  writeImpact(f, approvedBase, [[path, gitBlob(before), gitBlob(after)]], {[specPath]: reviewedUnchanged()});
   f.commit();
   assert.equal(await f.validate({base: approvedBase}), 1);
   f.write(path, Buffer.concat([after, Buffer.from('Unapproved extra text.\n')]));
@@ -270,4 +271,173 @@ test('F04 shared tooling cannot replace the required verification entry points',
   f.json(evidencePath, evidence);
   f.commit();
   await assert.rejects(f.validate(), /Protected verification script requires governance change/);
+});
+
+const authorityImpactPath = '.specify/authority-downstream-impact.json';
+const technicalAuthority = 'Docs/V1技术设计.md';
+const specPath = `${folder}/spec.md`;
+const auditPath = `${folder}/audit1.json`;
+const gitBlob = (bytes) => createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+
+function writeImpact(f, base, authority, specs) {
+  f.json(authorityImpactPath, {repository: REPOSITORY, base, authority, specs});
+}
+
+function reviewedUnchanged() {
+  return { disposition: 'unchanged', rationale: 'Reviewed changed requirement; it does not affect this Spec obligation.',
+    evidence: 'Synthetic independent assessment reference', changedArtifacts: [] };
+}
+
+function declareConvergence(f, base, authority, artifacts) {
+  writeImpact(f, base, authority, {[specPath]: {
+    disposition: 'converged', rationale: 'Material change requires a revised Spec, Plan and pending tasks.',
+    evidence: 'Synthetic impact review reference', changedArtifacts: artifacts,
+  }});
+  const impactPath = '.specify/sync-impact.json';
+  const sync = JSON.parse(f.read(impactPath));
+  sync.snapshots.authority.changedSpecArtifacts = artifacts;
+  f.json(impactPath, sync);
+}
+
+function renewAudit(f, base, authority) {
+  f.json(auditPath, {
+    ...JSON.parse(f.read(auditPath)),
+    authorityImpact: digest(JSON.stringify({base, authority})),
+    evidence: 'Synthetic renewed Audit 1 reference',
+    artifacts: Object.fromEntries(planningFiles.map((name) => [name, planDigest(name, f.read(`${folder}/${name}`).toString())])),
+  });
+}
+
+function addSpec(f, id, citeChangedAuthority) {
+  const dir = `specs/${id}-fe-other`;
+  mkdirSync(join(f.root, dir));
+  const spec = f.spec.replace('FE-001', `FE-${id}`);
+  f.write(dir + '/spec.md', citeChangedAuthority ? spec : spec.replace('[AUTH:V1-TECHNICAL] V1-C36\n', ''));
+  return dir + '/spec.md';
+}
+
+function modifyAuthority(f, path = technicalAuthority) {
+  const before = f.read(path);
+  const body = before.toString();
+  const changed = path === technicalAuthority
+    ? body.replace('| 现有微信小程序为家庭主端，不另建家庭 Web |', '| 现有微信小程序为家庭主端，测试夹具要求第二客户端 |')
+    : body.replace('空态要有服务端证据。', '空态必须提供已续期的服务端证据。');
+  assert.notEqual(changed, body, 'Fixture must change requirement text while retaining the citation');
+  const after = Buffer.from(changed);
+  f.write(path, after);
+  if (path === technicalAuthority) {
+    const manifestPath = '.specify/authority-source.json';
+    const manifest = JSON.parse(f.read(manifestPath));
+    const previous = manifest.sourceCommit;
+    manifest.sourceCommit = 'b'.repeat(40);
+    Object.assign(manifest.files.find((file) => file.sourcePath === path), {sourceBlob: gitBlob(after), sha256: digest(after)});
+    f.json(manifestPath, manifest);
+    f.json('.specify/sync-impact.json', {repository: REPOSITORY, snapshots: {authority: {
+      previous, next: manifest.sourceCommit, files: [path], rationale: 'Synthetic revision', changedSpecArtifacts: [],
+    }}});
+  }
+  return [[path, gitBlob(before), gitBlob(after)]];
+}
+
+test('F05 unchanged citation title cannot hide a related Spec from the impact assessment', async (t) => {
+  const f = fixture(t);
+  const authority = modifyAuthority(f);
+  f.json(authorityImpactPath, {repository: REPOSITORY, base: f.base, authority, specs: {}});
+  f.commit();
+  await assert.rejects(f.validate(), /Authority impact coverage/);
+});
+
+test('F05 requires assessment of all related baseline Specs even if one removes its citation in the candidate', async (t) => {
+  const f = fixture(t);
+  const second = addSpec(f, '002', true);
+  const base = f.commit();
+  const authority = modifyAuthority(f);
+  f.write(second, f.read(second).toString().replace('[AUTH:V1-TECHNICAL] V1-C36\n', ''));
+  const manifest = JSON.parse(f.read('.specify/sync-impact.json'));
+  manifest.snapshots.authority.changedSpecArtifacts = [second];
+  f.json('.specify/sync-impact.json', manifest);
+  writeImpact(f, base, authority, {[specPath]: reviewedUnchanged()});
+  f.commit();
+  await assert.rejects(f.validate({base}), /Authority impact coverage/);
+});
+
+test('F05 rejects an impact recorded for a different base or Authority version', async (t) => {
+  const f = fixture(t);
+  const authority = modifyAuthority(f);
+  writeImpact(f, 'a'.repeat(40), authority, {[specPath]: reviewedUnchanged()});
+  f.commit();
+  await assert.rejects(f.validate(), /Authority impact version mismatch/);
+  writeImpact(f, f.base, [[technicalAuthority, authority[0][1], '0'.repeat(40)]], {[specPath]: reviewedUnchanged()});
+  f.commit();
+  await assert.rejects(f.validate(), /Authority impact version mismatch/);
+});
+
+test('F05 unchanged Spec disposition needs a bound rationale and review evidence', async (t) => {
+  const f = fixture(t);
+  const authority = modifyAuthority(f);
+  writeImpact(f, f.base, authority, {[specPath]: {...reviewedUnchanged(), evidence: ''}});
+  f.commit();
+  await assert.rejects(f.validate(), /Missing Authority impact review evidence/);
+  writeImpact(f, f.base, authority, {[specPath]: reviewedUnchanged()});
+  f.commit();
+  assert.equal(await f.validate(), 1);
+});
+
+test('F05 convergence rejects stale Audit 1 and accepts renewed evidence while preserving history', async (t) => {
+  const f = fixture(t);
+  f.delivery();
+  const historicalBase = f.commit();
+  const oldEvidence = f.read(evidencePath);
+  const oldBinding = f.read(bindingPath);
+  const oldAudit = f.read(auditPath);
+  const oldTasks = f.read(`${folder}/tasks.md`);
+  const unrelated = addSpec(f, '002', false);
+  const unrelatedBefore = f.read(unrelated);
+  const base = f.commit();
+  const authority = modifyAuthority(f);
+  const artifacts = [specPath, `${folder}/plan.md`, `${folder}/tasks.md`];
+  for (const path of artifacts.slice(0, 2)) f.write(path, Buffer.concat([f.read(path), Buffer.from('\nConverged requirement.\n')]));
+  f.write(artifacts[2], Buffer.concat([oldTasks, Buffer.from(`- [ ] T002 Reassess requirement [REQ:V1-C36] [VERIFY:${testPath}]\n`)]));
+  declareConvergence(f, base, authority, artifacts);
+  f.commit();
+  await assert.rejects(f.validate({base}), /Audit 1 must be renewed/);
+  renewAudit(f, historicalBase, authority);
+  f.commit();
+  await assert.rejects(f.validate({base}), /Audit 1 must be renewed/);
+  renewAudit(f, base, authority);
+  f.commit();
+  assert.equal(await f.validate({base}), 2);
+  assert.deepEqual(f.read(unrelated), unrelatedBefore);
+  assert.deepEqual(f.read(evidencePath), oldEvidence);
+  assert.deepEqual(f.read(bindingPath), oldBinding);
+  assert.ok(f.read(artifacts[2]).subarray(0, oldTasks.length).equals(oldTasks));
+  assert.equal(execFileSync('git', ['show', `${historicalBase}:${auditPath}`], {cwd: f.root}).compare(oldAudit), 0);
+});
+
+test('F05 applies downstream coverage to an otherwise approved engineering Authority edit', async (t) => {
+  const f = fixture(t);
+  const path = 'Docs/frontend/engineering/V1前端工程技术设计.md';
+  const authority = modifyAuthority(f, path);
+  const after = f.read(path);
+  const before = execFileSync('git', ['show', `${f.base}:${path}`], {cwd: f.root});
+  f.write(path, before);
+  f.json(engineeringApproval, {repository: REPOSITORY, decision: 'Synthetic engineering approval',
+    files: {[path]: {before: digest(before), after: digest(after)}}});
+  const base = f.commit();
+  f.write(path, after);
+  f.commit();
+  await assert.rejects(f.validate({base}), /Authority impact coverage/);
+  writeImpact(f, base, authority, {[specPath]: reviewedUnchanged()});
+  f.commit();
+  assert.equal(await f.validate({base}), 1);
+});
+
+test('F05 accepts an Authority sync without assessment when no baseline Spec depends on it', async (t) => {
+  const f = fixture(t);
+  f.write(specPath, f.spec.replace('[AUTH:V1-TECHNICAL] V1-C36', '[AUTH:FE-ENGINEERING] 请求、可靠性与隐私'));
+  f.write(`${folder}/tasks.md`, `- [ ] ${taskLine.replace('V1-C36', '请求、可靠性与隐私')}\n`);
+  const base = f.commit();
+  modifyAuthority(f);
+  f.commit();
+  assert.equal(await f.validate({base}), 1);
 });

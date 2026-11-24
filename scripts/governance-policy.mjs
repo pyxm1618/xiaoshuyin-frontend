@@ -19,13 +19,16 @@ export function pathClass(path) {
   return 'unknown';
 }
 
-export function validateAuditAdmission(root, feature, readBase) {
+export function validateAuditAdmission(root, feature, readBase, expectedImpact) {
   const prefix = `specs/${feature}/`;
   const record = JSON.parse(readBase(prefix + 'audit1.json'));
   if (record.feature !== feature || record.role !== 'Plan AI 2' || record.decision !== 'PASS' ||
       typeof record.evidence !== 'string' || !record.evidence.trim() ||
       Object.keys(record.artifacts ?? {}).length !== planningFiles.length) {
     throw new Error(`Invalid Audit 1 admission: ${feature}`);
+  }
+  if (expectedImpact && record.authorityImpact !== expectedImpact) {
+    throw new Error(`Audit 1 must be renewed for the Authority change: ${feature}`);
   }
   for (const name of planningFiles) {
     const committed = readBase(prefix + name);

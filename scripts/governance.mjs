@@ -5,12 +5,14 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { PATHS, manifestPath, snapshotPaths, verifyRemote, verifySnapshot } from './upstream.mjs';
 
-import { engineeringApproval, pathClass, validateAuditAdmission } from './governance-policy.mjs';
+import { engineeringApproval, pathClass, planningFiles, validateAuditAdmission } from './governance-policy.mjs';
 
 export const REPOSITORY = 'pyxm1618/xiaoshuyin-frontend';
 const ownershipPath = '.specify/implementation-ownership.json';
 const provenancePath = '.specify/task-provenance-registry.json';
 const evidenceFiles = ['.specify/change-binding.json', '.specify/task-evidence.json'];
+const authorityImpactPath = '.specify/authority-downstream-impact.json';
+const authorityRefs = (spec) => [...spec.matchAll(/^\[AUTH:([A-Z0-9-]+)\] (.+)$/gm)];
 const unitPath = '.specify/authority-unit-registry.json';
 const featureSyntax = /^\d{3,}-fe-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const isImplementation = (path) => ['implementation', 'shared'].includes(pathClass(path));
@@ -65,7 +67,7 @@ export function validateSpecs(root, units) {
     const spec = readFileSync(join(root, folder, 'spec.md'), 'utf8');
     sections(spec, ['Upstream Traceability', 'Scope', 'Non-goals', 'Acceptance Scenarios', 'Acceptance Evidence'], folder);
     check(spec.includes(`**Slice**: ${id}\n`), `${folder}: missing exact slice ID ${id}`);
-    const refs = [...spec.matchAll(/^\[AUTH:([A-Z0-9-]+)\] (.+)$/gm)];
+    const refs = authorityRefs(spec);
     check(refs.length && refs.every(([, unit]) => units.has(unit)), `${folder}: missing or invalid Authority reference`);
     for (const [, unit, selector] of refs) {
       const source = readFileSync(join(root, units.get(unit)), 'utf8');
@@ -117,6 +119,57 @@ function validateSync(root, base, changed, authorityPaths) {
     for (const path of dependentSpecs) check(existsSync(join(root, path)), `Missing downstream artifact: ${path}`);
   }
   return kinds;
+}
+
+function validateAuthorityDownstream(root, base, changed) {
+  const registry = JSON.parse(git(root, 'show', `${base}:${unitPath}`));
+  const units = registry.units.filter(({path}) => changed.includes(path));
+  const hasRecord = changed.includes(authorityImpactPath);
+  if (!units.length) {
+    check(!hasRecord, 'Authority impact record requires a changed Authority file');
+    return;
+  }
+  const ids = new Set(units.map(({id}) => id));
+  const dependentSpecs = git(root, 'ls-tree', '-r', '--name-only', '-z', base, '--', 'specs/')
+    .split('\0').filter((path) => /^specs\/[^/]+\/spec\.md$/.test(path))
+    .filter((path) => authorityRefs(git(root, 'show', `${base}:${path}`)).some(([, id]) => ids.has(id)));
+  if (!dependentSpecs.length && !hasRecord) return;
+  check(hasRecord, 'Authority impact coverage requires a changed downstream assessment record');
+  const record = readJson(root, authorityImpactPath);
+  const authority = units.map(({path}) => path).sort().map((path) => [
+    path,
+    git(root, 'ls-tree', '--object-only', base, '--', path).trim() || null,
+    git(root, 'rev-parse', `HEAD:${path}`).trim(),
+  ]);
+  const impact = sha256(JSON.stringify({base, authority}));
+  check(record.repository === REPOSITORY && record.base === base &&
+    JSON.stringify(record.authority) === JSON.stringify(authority), 'Authority impact version mismatch');
+  check(sameSet(Object.keys(record.specs), dependentSpecs), 'Authority impact coverage must match the baseline Spec references');
+  for (const spec of dependentSpecs) {
+    const feature = spec.split('/')[1];
+    const prefix = `specs/${feature}/`;
+    const auditPath = prefix + 'audit1.json';
+    const review = record.specs[spec];
+    const actualArtifacts = planningFiles.map((name) => prefix + name).filter((path) => changed.includes(path));
+    check(typeof review.rationale === 'string' && review.rationale.trim() &&
+      typeof review.evidence === 'string' && review.evidence.trim(), `Missing Authority impact review evidence: ${spec}`);
+    check(sameSet(review.changedArtifacts, actualArtifacts), `Authority impact planning artifacts mismatch: ${spec}`);
+    if (review.disposition === 'unchanged') {
+      check(!actualArtifacts.length && !changed.includes(auditPath), `Unchanged Authority impact has planning changes: ${spec}`);
+      continue;
+    }
+    check(review.disposition === 'converged' && actualArtifacts.includes(spec),
+      `Authority impact requires converged Spec or reviewed unchanged disposition: ${spec}`);
+    for (const path of actualArtifacts) check(existsSync(join(root, path)), `Missing converged planning artifact: ${path}`);
+    const oldAudit = git(root, 'ls-tree', '--object-only', base, '--', auditPath).trim();
+    if (oldAudit || existsSync(join(root, auditPath))) {
+      check(changed.includes(auditPath), `Audit 1 must be renewed for the Authority change: ${feature}`);
+      validateAuditAdmission(root, feature, (path) => git(root, 'show', `HEAD:${path}`), impact);
+      if (oldAudit) check(
+        readJson(root, auditPath).evidence !== JSON.parse(git(root, 'show', `${base}:${auditPath}`)).evidence,
+        `Audit 1 renewal requires fresh review evidence: ${feature}`);
+    }
+  }
 }
 
 function validateDelivery(root, base, changed, features, ownership) {
@@ -254,7 +307,7 @@ export async function validateGovernance(root, { base, repository, remote = fals
       }
       const localChanges = frontend.filter(({path}) => changed.includes(path));
       if (localChanges.length) {
-        check(changed.every((path) => localChanges.some((unit) => unit.path === path) || pathClass(path) === 'planning'),
+        check(changed.every((path) => localChanges.some((unit) => unit.path === path) || pathClass(path) === 'planning' || path === authorityImpactPath),
           'Frontend engineering Authority requires a separate change');
         check(spawnSync('git', ['cat-file', '-e', `${base}:${engineeringApproval}`], { cwd: root }).status === 0,
           'Missing prior frontend engineering Authority approval');
@@ -270,6 +323,7 @@ export async function validateGovernance(root, { base, repository, remote = fals
       check(priorAuthority.files.every(({sourcePath}) => authorityPaths.includes(sourcePath)),
         'Previously imported Authority cannot be removed');
       const sync = validateSync(root, base, changed, authorityPaths);
+      validateAuthorityDownstream(root, base, changed);
       if (remote) await Promise.all(sync.map((kind) => verifyRemote(kind === 'authority' ? authority : contract, kind)));
       const baseOwnership = JSON.parse(git(root, 'show', `${base}:${ownershipPath}`));
       validateDelivery(root, base, changed, features, baseOwnership);
