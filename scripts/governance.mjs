@@ -217,6 +217,25 @@ export async function validateGovernance(root, { base, repository, remote = fals
     const stray = changed.find((path) =>
       !registeredPaths.includes(path) && !PATHS.contract.includes(path) && pathClass(path) === 'unknown');
     check(!stray, `Unexpected Authority/contract path or unclassified change: ${stray}`);
+    if (changed.includes('package.json') && spawnSync('git', ['cat-file', '-e', `${base}:package.json`], { cwd: root }).status === 0) {
+      const previous = JSON.parse(git(root, 'show', `${base}:package.json`));
+      const current = readJson(root, 'package.json');
+      const protectedScripts = ['authority:check', 'contract:check', 'governance:check', 'verify-all', 'typecheck', 'test']
+        .flatMap((name) => [name, `pre${name}`, `post${name}`]);
+      const touched = protectedScripts.filter((name) => previous.scripts?.[name] !== current.scripts?.[name]);
+      if (touched.length) {
+        check(changed.every((path) => path === 'package.json' || pathClass(path) === 'governance') &&
+          !changed.some((path) => evidenceFiles.includes(path) || path === ownershipPath),
+        'Protected verification script requires governance change');
+        for (const name of protectedScripts) {
+          for (const manifest of [previous, current]) {
+            if (manifest.scripts) delete manifest.scripts[name];
+          }
+        }
+        check(JSON.stringify(previous) === JSON.stringify(current), 'Verification entry-point changes cannot include shared package edits');
+        changed.splice(changed.indexOf('package.json'), 1);
+      }
+    }
     const bootstrapping = spawnSync('git', ['cat-file', '-e', `${base}:${unitPath}`], { cwd: root }).status !== 0;
     if (bootstrapping) {
       check(!features.size && !changed.some((path) => pathClass(path) === 'implementation'), 'Bootstrap cannot admit production changes or features');

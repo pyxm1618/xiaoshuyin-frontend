@@ -27,6 +27,7 @@ function fixture(t, { audit = true, shared = false, missingPlanArtifact } = {}) 
   const read = (path) => readFileSync(join(root, path));
   for (const path of ['Docs', 'packages', 'specs', '.specify']) cpSync(path, join(root, path), { recursive: true });
   for (const path of [folder, 'apps/miniprogram', 'tests']) mkdirSync(join(root, path), { recursive: true });
+  cpSync('package.json', join(root, 'package.json'));
   const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   git('init');
   const commit = () => {
@@ -52,7 +53,7 @@ function fixture(t, { audit = true, shared = false, missingPlanArtifact } = {}) 
     write(code, 'export {};\n');
     write(testPath, 'import { test } from "node:test"; import assert from "node:assert/strict"; test("fixture", () => assert.equal(typeof 1, "number"));\n');
     write(`${folder}/tasks.md`, `- [x] ${taskLine}\n`);
-    if (shared) write('package.json', '{"private":true}\n');
+    if (shared) json('package.json', {...JSON.parse(read('package.json')), description: 'Synthetic shared tooling edit'});
     const paths = [code, testPath, ...(shared ? ['package.json'] : [])];
     json(bindingPath, { repository: REPOSITORY, feature, kind: shared ? 'shared-engineering' : 'implementation',
       files: Object.fromEntries(paths.map((path) => [path, digest(read(path))])) });
@@ -253,4 +254,20 @@ test('F04 unknown paths fail; authorized shared tooling passes with exact bindin
   f.json(bindingPath, binding);
   f.commit();
   await assert.rejects(f.validate(), /Invalid Change Binding kind/);
+});
+
+test('F04 shared tooling cannot replace the required verification entry points', async (t) => {
+  const f = fixture(t, {shared:true});
+  f.delivery();
+  const packageFile = JSON.parse(f.read('package.json'));
+  packageFile.scripts['governance:check'] = 'true';
+  f.json('package.json', packageFile);
+  const binding = JSON.parse(f.read(bindingPath));
+  binding.files['package.json'] = digest(f.read('package.json'));
+  f.json(bindingPath, binding);
+  const evidence = JSON.parse(f.read(evidencePath));
+  evidence.binding = digest(f.read(bindingPath));
+  f.json(evidencePath, evidence);
+  f.commit();
+  await assert.rejects(f.validate(), /Protected verification script requires governance change/);
 });

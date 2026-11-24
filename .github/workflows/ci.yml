@@ -24,7 +24,7 @@ jobs:
       matrix:
         include:
           - name: Spec Governance
-            command: bun run governance:check --remote
+            command: node scripts/governance.mjs --remote
           - name: Authority Integrity
             command: bun run authority:check
           - name: Contract Check
