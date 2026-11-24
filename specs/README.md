@@ -31,3 +31,13 @@ TypeScript 从仓库根 `tsconfig.json` 执行检查。配置直接声明检查�
 - 已存在 Audit 1 的收敛项需要 Plan AI 2 提供新的证据，重新绑定五份工件，并写入 `authorityImpact`。其值为 `JSON.stringify({base, authority})` 的 UTF-8 SHA-256。审核前尚未准入的 Spec 仍按正常流程获得首次 Audit 1。已完成任务及既有交付证据由任务门禁和 Git 历史保留。
 
 机器核对覆盖和版本，不根据标题判断语义。审查人对评估决定与证据负责。
+
+## Trusted Audit 2 trust boundary
+
+Candidate CI 只证明 candidate 在自身 workflow / verifier 下保持 self-consistent；它不是独立 trust evidence。合并前的 Independent Audit 2 使用 protected BASE 的 `.specify/scripts/trusted-audit.mjs`，把 candidate exact HEAD 作为数据读取，并由 BASE 的 `scripts/governance.mjs` 决定验证模式。
+
+- **Ordinary implementation**：没有 control-plane 变更时，trusted helper 对准确 candidate HEAD 完整运行 BASE `validateGovernance()`；implementation 与 control-plane 混合直接失败。
+- **Control-plane upgrade**：workflow、governance verifier/policy、治理语义 registry、bootstrap governance tests、验证入口/配置等只能形成 control-plane-only candidate。BASE 只验证 Upgrade Envelope；结果必须是 `CONTROL_PLANE_REVIEW_REQUIRED`，不得描述为 trusted PASS。新规则正确性由 candidate self-tests、Independent Audit 2 exact-diff review 与 Owner merge 决定。
+- Authority / Contract snapshot 与 sync evidence、普通 Slice planning、业务实现及普通 Slice tests 不属于 control-plane upgrade envelope，不能借治理升级夹带。
+- Trusted audit 必须记录 exact BASE、exact HEAD、merge base、BASE helper/verifier Git blob identity 与 changed-path 分类。任何 candidate HEAD 变化都会使旧 Audit 2 结论失效。
+- Governance 合法升级遵循 bootstrap chain：old protected main → candidate self-tests → old BASE Upgrade Envelope / 可执行旧规则 → Independent Audit 2 → Owner merge → post-merge main CI；新 main 此后才成为新的 trust root。

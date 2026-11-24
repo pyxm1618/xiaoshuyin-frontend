@@ -29,6 +29,96 @@ function git(root, ...args) {
   return result.stdout;
 }
 
+
+const trustCommitSyntax = /^[a-f0-9]{40}$/;
+const controlPlaneExactPaths = new Set([
+  'scripts/governance.mjs',
+  'scripts/governance-policy.mjs',
+  'scripts/check-ruleset.mjs',
+  'scripts/verify-all.mjs',
+  'scripts/upstream.mjs',
+  'tests/bootstrap.test.mjs',
+  'specs/README.md',
+  'tsconfig.json',
+  '.node-version',
+  '.specify/task-provenance-registry.json',
+  '.specify/repository-ruleset-contract.json',
+  '.specify/integration.json',
+  '.specify/init-options.json',
+]);
+const controlPlanePrefixes = [
+  '.github/workflows/',
+  '.specify/scripts/',
+  '.specify/templates/',
+  '.specify/workflows/',
+  '.specify/memory/',
+  '.specify/integrations/',
+];
+const protectedVerificationScripts = [
+  'authority:check', 'contract:check', 'governance:check', 'verify-all', 'typecheck', 'test',
+].flatMap((name) => [name, `pre${name}`, `post${name}`]);
+
+function packageAffectsVerification(root, base, changed) {
+  if (!changed.includes('package.json')) return false;
+  const previous = JSON.parse(git(root, 'show', `${base}:package.json`));
+  const current = readJson(root, 'package.json');
+  return protectedVerificationScripts.some((name) => previous.scripts?.[name] !== current.scripts?.[name]) ||
+    previous.engines?.node !== current.engines?.node ||
+    previous.packageManager !== current.packageManager ||
+    previous.devDependencies?.typescript !== current.devDependencies?.typescript;
+}
+
+function controlPlaneFor(root, base, changed) {
+  const packageControlPlane = packageAffectsVerification(root, base, changed);
+  return changed.filter((path) =>
+    controlPlaneExactPaths.has(path) ||
+    controlPlanePrefixes.some((prefix) => path.startsWith(prefix)) ||
+    (packageControlPlane && (path === 'package.json' || path === 'bun.lock')));
+}
+
+export function validateControlPlaneUpgradeEnvelope(root, { base, head = 'HEAD' } = {}) {
+  check(trustCommitSyntax.test(base ?? ''), 'Trusted Base must be an exact lowercase 40-hex commit SHA');
+  check(trustCommitSyntax.test(head ?? ''), 'Candidate Head must be an exact lowercase 40-hex commit SHA');
+  const actualHead = git(root, 'rev-parse', 'HEAD').trim();
+  check(actualHead === head, `Candidate worktree HEAD mismatch: expected ${head}, got ${actualHead}`);
+  const ancestry = spawnSync('git', ['merge-base', '--is-ancestor', base, head], {
+    cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
+  });
+  check(ancestry.status === 0, 'Trusted Base must be an ancestor of Candidate Head');
+  const mergeBase = git(root, 'merge-base', base, head).trim();
+  check(mergeBase === base, `Candidate merge-base mismatch: expected ${base}, got ${mergeBase}`);
+  const changedPaths = git(root, 'diff', '--no-renames', '--name-only', '-z', base, head)
+    .split('\0').filter(Boolean).sort();
+  const implementationPaths = changedPaths.filter(isImplementation);
+  const controlPlanePaths = controlPlaneFor(root, base, changedPaths).sort();
+
+  if (!controlPlanePaths.length) {
+    return {
+      candidateType: implementationPaths.length ? 'ORDINARY_IMPLEMENTATION' : 'ORDINARY_BASE_GOVERNED',
+      changedPaths,
+      controlPlanePaths,
+      implementationPaths: implementationPaths.sort(),
+      mergeBase,
+      baselineResult: 'PENDING_BASE_GOVERNANCE',
+    };
+  }
+
+  check(!implementationPaths.length,
+    `Control-plane upgrade cannot include implementation paths: ${implementationPaths.join(', ')}`);
+  const mixed = changedPaths.filter((path) => !controlPlanePaths.includes(path));
+  check(!mixed.length,
+    `Control-plane upgrade contains non-control-plane changes: ${mixed.join(', ')}`);
+
+  return {
+    candidateType: 'CONTROL_PLANE',
+    changedPaths,
+    controlPlanePaths,
+    implementationPaths: [],
+    mergeBase,
+    baselineResult: 'CONTROL_PLANE_REVIEW_REQUIRED',
+  };
+}
+
 function sameSet(actual, expected) {
   return Array.isArray(actual) && actual.length === expected.length &&
     new Set(actual).size === actual.length && expected.every((entry) => actual.includes(entry));

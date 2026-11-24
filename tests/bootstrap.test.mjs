@@ -656,3 +656,192 @@ test('GitHub API helpers use optional authentication without leaking tokens', as
     },
   );
 });
+
+
+const trustedAuditRelative = '.specify/scripts/trusted-audit.mjs';
+
+function trustedAuditFixture(t) {
+  const f = fixture(t);
+  mkdirSync(join(f.root, 'scripts'), {recursive: true});
+  mkdirSync(join(f.root, '.specify/scripts'), {recursive: true});
+  for (const path of ['scripts/governance.mjs', 'scripts/governance-policy.mjs', 'scripts/upstream.mjs']) {
+    f.write(path, readFileSync(path));
+  }
+  f.write(trustedAuditRelative, readFileSync(trustedAuditRelative));
+  f.git('remote', 'add', 'origin', `https://github.com/${REPOSITORY}.git`);
+  const trustBase = f.commit();
+  const parent = mkdtempSync(join(tmpdir(), 'xiaoshuyin-fe-trusted-worktree-'));
+  const trustedRoot = join(parent, 'base');
+  f.git('worktree', 'add', '--detach', trustedRoot, trustBase);
+  t.after(() => rmSync(parent, {recursive: true, force: true}));
+
+  const run = (overrides = {}) => {
+    const script = overrides.script ?? join(trustedRoot, trustedAuditRelative);
+    const head = overrides.head ?? f.git('rev-parse', 'HEAD');
+    const args = [
+      script,
+      '--repository', REPOSITORY,
+      '--base', overrides.base ?? trustBase,
+      '--head', head,
+      '--trusted-root', overrides.trustedRoot ?? trustedRoot,
+      '--candidate-root', overrides.candidateRoot ?? f.root,
+    ];
+    if (overrides.remote) args.push('--remote');
+    return spawnSync(process.execPath, args, {encoding: 'utf8'});
+  };
+
+  return {...f, trustBase, trustedRoot, run};
+}
+
+test('R1-T01 trusted worktree HEAD must equal requested BASE', (t) => {
+  const f = trustedAuditFixture(t);
+  const result = f.run({base: f.base});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Trusted worktree HEAD mismatch/);
+});
+
+test('R1-T02 candidate worktree HEAD must equal requested HEAD', (t) => {
+  const f = trustedAuditFixture(t);
+  f.delivery(true, f.trustBase);
+  f.commit();
+  const result = f.run({head: f.trustBase});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Candidate worktree HEAD mismatch/);
+});
+
+test('R1-T03 trusted worktree must be clean', (t) => {
+  const f = trustedAuditFixture(t);
+  writeFileSync(join(f.trustedRoot, 'dirty.txt'), 'dirty');
+  const result = f.run();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Trusted worktree must be clean/);
+});
+
+test('R1-T04 candidate worktree must be clean', (t) => {
+  const f = trustedAuditFixture(t);
+  writeFileSync(join(f.root, 'dirty.txt'), 'dirty');
+  const result = f.run();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Candidate worktree must be clean/);
+});
+
+test('R1-T05 BASE must be an ancestor of candidate HEAD', (t) => {
+  const f = trustedAuditFixture(t);
+  f.delivery(true, f.trustBase);
+  const head = f.commit();
+  const tree = f.git('rev-parse', `${f.trustBase}^{tree}`);
+  const unrelated = f.git(
+    '-c', 'user.name=Frontend fixture',
+    '-c', 'user.email=fixture@example.invalid',
+    'commit-tree', tree, '-m', 'Unrelated trust root',
+  );
+  const parent = mkdtempSync(join(tmpdir(), 'xiaoshuyin-fe-unrelated-worktree-'));
+  const unrelatedRoot = join(parent, 'base');
+  f.git('worktree', 'add', '--detach', unrelatedRoot, unrelated);
+  t.after(() => rmSync(parent, {recursive: true, force: true}));
+  const result = f.run({
+    base: unrelated,
+    head,
+    trustedRoot: unrelatedRoot,
+    script: join(unrelatedRoot, trustedAuditRelative),
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Trusted Base must be an ancestor/);
+});
+
+test('R1-T06/T11/T12 ordinary implementation uses BASE governance and binds exact identities', (t) => {
+  const f = trustedAuditFixture(t);
+  f.delivery(true, f.trustBase);
+  const head = f.commit();
+  const result = f.run({head});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Candidate Type: ORDINARY_IMPLEMENTATION/);
+  assert.match(result.stdout, /Baseline Result: PASS/);
+  assert.match(result.stdout, new RegExp(`Trusted Base: ${f.trustBase}`));
+  assert.match(result.stdout, new RegExp(`Candidate Head: ${head}`));
+  assert.match(result.stdout, new RegExp(
+    `Trusted Verifier Identity: ${f.git('rev-parse', `${f.trustBase}:scripts/governance.mjs`)}`,
+  ));
+  assert.match(result.stdout, new RegExp(
+    `Trusted Helper Identity: ${f.git('rev-parse', `${f.trustBase}:${trustedAuditRelative}`)}`,
+  ));
+});
+
+test('R1-T07/T09 implementation mixed with control-plane governance is rejected', (t) => {
+  const f = trustedAuditFixture(t);
+  f.delivery(true, f.trustBase);
+  f.write('scripts/governance.mjs', Buffer.concat([
+    f.read('scripts/governance.mjs'),
+    Buffer.from('\n// mixed control-plane change\n'),
+  ]));
+  const head = f.commit();
+  const result = f.run({head});
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /cannot include implementation paths/);
+});
+
+test('R1-T08 pure control-plane candidate requires independent review instead of trusted PASS', (t) => {
+  const f = trustedAuditFixture(t);
+  f.write('scripts/governance.mjs', Buffer.concat([
+    f.read('scripts/governance.mjs'),
+    Buffer.from('\n// pure control-plane change\n'),
+  ]));
+  const head = f.commit();
+  const result = f.run({head});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Candidate Type: CONTROL_PLANE/);
+  assert.match(result.stdout, /Baseline Result: CONTROL_PLANE_REVIEW_REQUIRED/);
+  assert.doesNotMatch(result.stdout, /Baseline Result: PASS/);
+});
+
+test('R1-T10 R2-style schema upgrade remains inside the control-plane envelope', (t) => {
+  const f = trustedAuditFixture(t);
+  f.write('scripts/governance.mjs', Buffer.concat([
+    f.read('scripts/governance.mjs'),
+    Buffer.from('\n// future R2 governance schema\n'),
+  ]));
+  f.json('.specify/task-provenance-registry.json', {
+    schemaVersion: 2,
+    repository: REPOSITORY,
+    mode: 'per-slice-delivery-evidence',
+    evidenceFiles: {binding: 'specs/<feature>/change-binding.json', evidence: 'specs/<feature>/task-evidence.json'},
+  });
+  f.write('specs/README.md', '# Future R2 per-slice evidence\n');
+  f.write('tests/bootstrap.test.mjs', '// Future R2 governance regression tests\n');
+  const head = f.commit();
+  const result = f.run({head});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Candidate Type: CONTROL_PLANE/);
+  assert.match(result.stdout, /CONTROL_PLANE_REVIEW_REQUIRED/);
+});
+
+test('R1-T13 BASE trusted audit reads but never executes candidate test code', (t) => {
+  const f = trustedAuditFixture(t);
+  f.delivery(true, f.trustBase);
+  f.write(testPath, 'throw new Error("candidate test code executed");\n');
+  const binding = JSON.parse(f.read(bindingPath));
+  binding.files[testPath] = digest(f.read(testPath));
+  f.json(bindingPath, binding);
+  const evidence = JSON.parse(f.read(evidencePath));
+  evidence.binding = digest(f.read(bindingPath));
+  f.json(evidencePath, evidence);
+  const head = f.commit();
+  const result = f.run({head});
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Baseline Result: PASS/);
+});
+
+test('R1-T14 candidate copy of helper cannot impersonate the trusted BASE helper', (t) => {
+  const f = trustedAuditFixture(t);
+  f.write(trustedAuditRelative, Buffer.concat([
+    f.read(trustedAuditRelative),
+    Buffer.from('\n// candidate helper copy\n'),
+  ]));
+  const head = f.commit();
+  const result = f.run({
+    head,
+    script: join(f.root, trustedAuditRelative),
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /must execute from the trusted BASE worktree/);
+});
