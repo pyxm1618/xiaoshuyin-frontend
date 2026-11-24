@@ -1,5 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -24,13 +25,35 @@ const classification = (kind, path) => kind === 'contract'
   ? 'api-contract'
   : path.startsWith('Docs/frontend/') ? 'frontend-experience' : 'upstream-authority';
 
-export function snapshotPaths(root, kind, includePending = false) {
-  if (kind !== 'authority') return PATHS[kind];
-  const registry = JSON.parse(readFileSync(join(root, '.specify/authority-unit-registry.json'), 'utf8'));
-  const manifest = JSON.parse(readFileSync(join(root, manifestPath(kind)), 'utf8'));
-  return [...PATHS.authority, ...registry.units.filter(({owner, path}) =>
-    owner === 'imported' && !PATHS.authority.includes(path) &&
-    (includePending || manifest.files.some(({sourcePath}) => sourcePath === path))).map(({path}) => path)];
+const authorityRegistry = '.specify/authority-unit-registry.json';
+export const isAdditionalAuthority = (path) => /^Docs\/frontend\/step-4\/[a-zA-Z0-9\u3400-\u9fff_-]+\.md$/.test(path);
+
+function authorityScope(root, base, manifest) {
+  if (base !== undefined && !commitSyntax.test(base)) throw new Error('Governance base must be an exact commit SHA');
+  const revision = base ?? 'HEAD';
+  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
+  const hasRegistry = git('ls-tree', '--name-only', revision, '--', authorityRegistry).trim();
+  const admitted = hasRegistry
+    ? JSON.parse(git('show', `${revision}:${authorityRegistry}`)).units.filter(({owner, path}) =>
+      owner === 'imported' && isAdditionalAuthority(path)).map(({path}) => path)
+    : [];
+  const listed = new Set(manifest.files.map(({sourcePath}) => sourcePath));
+  const directory = 'Docs/frontend/step-4';
+  if (existsSync(join(root, directory))) {
+    for (const name of readdirSync(join(root, directory))) {
+      const path = `${directory}/${name}`;
+      if (!admitted.includes(path) || !listed.has(path)) {
+        throw new Error(`Unexpected Authority path without prior admission and sync: ${path}`);
+      }
+    }
+  }
+  if (hasRegistry) {
+    const previous = JSON.parse(git('show', `${revision}:${manifestPath('authority')}`));
+    if (previous.files.some(({sourcePath}) => !listed.has(sourcePath))) {
+      throw new Error('Previously imported Authority cannot be removed');
+    }
+  }
+  return { admitted, expected: [...PATHS.authority, ...admitted.filter((path) => listed.has(path))] };
 }
 
 function contractVersion(bytes) {
@@ -41,12 +64,12 @@ function contractVersion(bytes) {
   return { openapi, info: info.version };
 }
 
-export function verifySnapshot(root, kind, admitted = PATHS[kind]) {
+export function verifySnapshot(root, kind, { base } = {}) {
   const manifest = JSON.parse(readFileSync(join(root, manifestPath(kind)), 'utf8'));
   if (manifest.sourceRepository !== SOURCE || !commitSyntax.test(manifest.sourceCommit)) {
     throw new Error(`Invalid ${kind} repository or source commit`);
   }
-  const expected = new Set(admitted);
+  const expected = new Set(kind === 'authority' ? authorityScope(root, base, manifest).expected : PATHS[kind]);
   for (const entry of manifest.files) {
     const pathname = entry.sourcePath;
     if (!expected.delete(pathname) || entry.destinationPath !== pathname || entry.classification !== classification(kind, pathname)) {
@@ -110,8 +133,9 @@ async function preview(root, kind, commit, destination) {
   if (!PATHS[kind] || !destination) throw new Error('Usage: preview authority|contract COMMIT NEW_OUTSIDE_DIRECTORY');
   const output = resolve(destination);
   if (output === root || output.startsWith(`${root}/`)) throw new Error('Preview must be outside the checkout');
-  const current = verifySnapshot(root, kind, snapshotPaths(root, kind));
-  const files = await sourceSnapshot(kind, commit, snapshotPaths(root, kind, true));
+  const current = verifySnapshot(root, kind);
+  const scope = kind === 'authority' ? [...PATHS.authority, ...authorityScope(root, undefined, current).admitted] : PATHS[kind];
+  const files = await sourceSnapshot(kind, commit, scope);
   const manifest = { sourceRepository: SOURCE, sourceCommit: commit, files: files.map(({ entry }) => entry) };
   const changed = manifest.files.filter((entry) => current.files.find((old) =>
     old.sourcePath === entry.sourcePath)?.sourceBlob !== entry.sourceBlob).map(({ sourcePath }) => sourcePath);
@@ -142,7 +166,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (command === 'preview') await preview(process.cwd(), ...args);
   else {
     if (!PATHS[command] || args.some((arg) => arg !== '--remote')) throw new Error('Expected authority, contract, or preview');
-    const manifest = verifySnapshot(process.cwd(), command, snapshotPaths(process.cwd(), command));
+    const manifest = verifySnapshot(process.cwd(), command, { base: process.env.GOVERNANCE_BASE || undefined });
     if (args.includes('--remote')) await verifyRemote(manifest, command);
     console.log(`${command} integrity PASS ${manifest.files.length} files at ${manifest.sourceCommit}`);
   }

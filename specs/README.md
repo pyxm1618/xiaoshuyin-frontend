@@ -16,7 +16,13 @@ Authority 同步的 `.specify/sync-impact.json` 包含 `repository` 和 `snapsho
 
 Change Binding 的 `kind` 使用 `implementation`，若涉及共享工程文件则使用 `shared-engineering`。两类实现均需要同一冻结计划的路径允许、已先行登记的所有权和当前 Task Evidence。普通实现包括小程序 `apps/miniprogram/` 和相应测试。根目录共享工程配置为有限名单，应用构建脚本可在 `scripts/build/`，通用工程工具可在 `scripts/engineering/`。可在正常规划 PR 中登记所需共享路径，再随实现一并交付其变更。治理规则、CI 和验证入口属于治理变更，未知路径直接失败。新增路径类别经治理评审。
 
+## 静态验收配置
+
+TypeScript 从仓库根 `tsconfig.json` 执行检查。配置直接声明检查范围和编译标准，禁止通过 `extends` 或 project references 委托配置。新增源目录、平台类型或调整编译选项时，先以独立、仅修改 `tsconfig.json` 的治理 PR 提交并完成审查。审查核对代码覆盖范围和检查标准。后续 Slice 从已合入该配置的基线开展实现。
+
 ## Authority 下游影响记录
+
+新增导入文件由目标基线的 Registry 准入。已登记但尚无文件和 manifest 条目的 Authority 可以保持待同步。验证 PR 时将准确目标 SHA 传入 `GOVERNANCE_BASE`。本地快照验证默认信任已检出的 HEAD。
 
 导入或本地工程 Authority 的文件发生变化时，门禁使用目标基线的 Unit Registry 和 `spec.md` 引用推导待评估清单。按文件评估全部基线引用，即使引用标题未变或在候选移除。无引用时可省略下游记录。已有引用时，同步 PR 须更新 `.specify/authority-downstream-impact.json`：
 

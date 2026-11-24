@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { PATHS, manifestPath, snapshotPaths, verifyRemote, verifySnapshot } from './upstream.mjs';
+import { PATHS, isAdditionalAuthority, manifestPath, verifyRemote, verifySnapshot } from './upstream.mjs';
 
 import { engineeringApproval, pathClass, planningFiles, validateAuditAdmission } from './governance-policy.mjs';
 
@@ -107,7 +107,7 @@ function validateSync(root, base, changed, authorityPaths) {
   check(impact.repository === REPOSITORY && sameSet(Object.keys(impact.snapshots), kinds), 'Invalid sync impact identity');
   for (const kind of kinds) {
     const previous = JSON.parse(git(root, 'show', `${base}:${manifestPath(kind)}`));
-    const current = verifySnapshot(root, kind, paths[kind]);
+    const current = verifySnapshot(root, kind, { base });
     const scope = impact.snapshots[kind];
     const delta = paths[kind].filter((path) => changed.includes(path));
     check(delta.length && changed.includes(manifestPath(kind)) &&
@@ -238,9 +238,13 @@ function validateDelivery(root, base, changed, features, ownership) {
 export async function validateGovernance(root, { base, repository, remote = false } = {}) {
   if (repository !== undefined) check(repository === REPOSITORY, `Wrong repository: ${repository}`);
   if (!repository) check(git(root, 'remote', 'get-url', 'origin').trim() === `https://github.com/${REPOSITORY}.git`, 'Wrong repository origin');
-  const authorityPaths = snapshotPaths(root, 'authority');
-  const authority = verifySnapshot(root, 'authority', authorityPaths);
+  const authority = verifySnapshot(root, 'authority', { base });
+  const authorityPaths = authority.files.map(({sourcePath}) => sourcePath);
   const contract = verifySnapshot(root, 'contract');
+  check(lstatSync(join(root, 'tsconfig.json')).isFile(), 'Static verification config must be a regular file');
+  const staticConfig = readJson(root, 'tsconfig.json');
+  check(!Object.hasOwn(staticConfig, 'extends') && !Object.hasOwn(staticConfig, 'references'),
+    'Static verification config must be self-contained');
   const registry = readJson(root, unitPath);
   const imported = registry.units.filter(({ owner }) => owner === 'imported');
   const frontend = registry.units.filter(({ owner }) => owner === 'frontend');
@@ -251,7 +255,7 @@ export async function validateGovernance(root, { base, repository, remote = fals
     imported.length + frontend.length === registry.units.length &&
     PATHS.authority.every((path) => imported.some((unit) => unit.path === path)) &&
     imported.every(({path}) => PATHS.authority.includes(path) ||
-      (/^Docs\/frontend\/step-4\/[a-zA-Z0-9\u3400-\u9fff_-]+\.md$/.test(path) &&
+      (isAdditionalAuthority(path) &&
        (!existsSync(join(root, path)) || authorityPaths.includes(path)))) &&
     frontend.length === 3 && frontend.every(({id, path}) => /^Docs\/frontend\/engineering\/[^/]+\.md$/.test(path) && units.has(id)), 'Invalid Authority Unit Registry');
   const features = validateSpecs(root, units);
@@ -270,9 +274,15 @@ export async function validateGovernance(root, { base, repository, remote = fals
     const stray = changed.find((path) =>
       !registeredPaths.includes(path) && !PATHS.contract.includes(path) && pathClass(path) === 'unknown');
     check(!stray, `Unexpected Authority/contract path or unclassified change: ${stray}`);
+    if (changed.includes('tsconfig.json') && spawnSync('git', ['cat-file', '-e', `${base}:tsconfig.json`], { cwd: root }).status === 0) {
+      check(changed.length === 1, 'Static verification config requires a separate tsconfig.json-only governance PR');
+    }
     if (changed.includes('package.json') && spawnSync('git', ['cat-file', '-e', `${base}:package.json`], { cwd: root }).status === 0) {
       const previous = JSON.parse(git(root, 'show', `${base}:package.json`));
       const current = readJson(root, 'package.json');
+      check(previous.devDependencies?.typescript === current.devDependencies?.typescript ||
+        changed.every((path) => path === 'package.json' || path === 'bun.lock'),
+        'TypeScript version changes require a separate tooling PR');
       const protectedScripts = ['authority:check', 'contract:check', 'governance:check', 'verify-all', 'typecheck', 'test']
         .flatMap((name) => [name, `pre${name}`, `post${name}`]);
       const touched = protectedScripts.filter((name) => previous.scripts?.[name] !== current.scripts?.[name]);
@@ -319,9 +329,6 @@ export async function validateGovernance(root, { base, repository, remote = fals
           'Invalid prior frontend engineering Authority approval');
       }
       if (changed.includes(engineeringApproval)) check(changed.length === 1, 'Engineering Authority approval requires its own PR');
-      const priorAuthority = JSON.parse(git(root, 'show', `${base}:${manifestPath('authority')}`));
-      check(priorAuthority.files.every(({sourcePath}) => authorityPaths.includes(sourcePath)),
-        'Previously imported Authority cannot be removed');
       const sync = validateSync(root, base, changed, authorityPaths);
       validateAuthorityDownstream(root, base, changed);
       if (remote) await Promise.all(sync.map((kind) => verifyRemote(kind === 'authority' ? authority : contract, kind)));
@@ -336,7 +343,7 @@ export async function validateGovernance(root, { base, repository, remote = fals
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const count = await validateGovernance(process.cwd(), {
     repository: process.env.GITHUB_REPOSITORY,
-    base: process.env.GOVERNANCE_BASE,
+    base: process.env.GOVERNANCE_BASE || undefined,
     remote: process.argv.includes('--remote'),
   });
   console.log(`Spec Governance PASS (${count} registered slices)`);

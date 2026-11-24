@@ -10,9 +10,9 @@ export const planDigest = (name, text) =>
 
 export function pathClass(path) {
   if (/^(apps\/miniprogram\/|packages\/(?!generated\/)|tests\/(?!bootstrap\.test\.mjs$))/.test(path)) return 'implementation';
-  if (/^(package\.json|bun\.lock|tsconfig\.json|project\.config\.json|\.env\.example|\.gitignore|\.gitattributes|\.node-version)$/.test(path) ||
+  if (/^(package\.json|bun\.lock|project\.config\.json|\.env\.example|\.gitignore|\.gitattributes|\.node-version)$/.test(path) ||
       /^scripts\/(?:build|engineering)\//.test(path)) return 'shared';
-  if (/^(AGENTS\.md|README\.md|specs\/README\.md|tests\/bootstrap\.test\.mjs)$/.test(path) ||
+  if (/^(tsconfig\.json|AGENTS\.md|README\.md|specs\/README\.md|tests\/bootstrap\.test\.mjs)$/.test(path) ||
       /^\.specify\/|^\.agents\/skills\/|^\.github\/workflows\//.test(path) ||
       /^scripts\/(?:governance(?:-policy)?|upstream|verify-all|check-ruleset)\.mjs$/.test(path)) return 'governance';
   if (/^specs\/\d{3,}-fe-[a-z0-9-]+\//.test(path)) return 'planning';
