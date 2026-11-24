@@ -92,21 +92,33 @@ export function verifySnapshot(root, kind, { base } = {}) {
   return manifest;
 }
 
-async function get(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(45000) });
+export function githubHeaders(url, token = process.env.GITHUB_TOKEN) {
+  const headers = {'User-Agent': 'xiaoshuyin-frontend-governance'};
+  if (new URL(url).hostname === 'api.github.com') {
+    headers.Accept = 'application/vnd.github+json';
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+export async function githubGet(url, { token = process.env.GITHUB_TOKEN, fetchImpl = fetch, timeout = 45000 } = {}) {
+  const response = await fetchImpl(url, {
+    headers: githubHeaders(url, token),
+    signal: AbortSignal.timeout(timeout),
+  });
   if (!response.ok) throw new Error(`Upstream GET ${url}: HTTP ${response.status}`);
   return response;
 }
 
 async function sourceSnapshot(kind, commit, admitted = PATHS[kind]) {
   if (!commitSyntax.test(commit)) throw new Error('Supply a full lowercase 40-hex backend commit');
-  const tree = await (await get(`https://api.github.com/repos/${SOURCE}/git/trees/${commit}?recursive=1`)).json();
+  const tree = await (await githubGet(`https://api.github.com/repos/${SOURCE}/git/trees/${commit}?recursive=1`)).json();
   if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Upstream tree is incomplete');
   const files = await Promise.all(admitted.map(async (pathname) => {
     const source = tree.tree.find((entry) => entry.type === 'blob' && entry.path === pathname);
     if (!source || source.mode !== '100644') throw new Error(`Missing regular upstream blob: ${pathname}`);
     const encoded = pathname.split('/').map(encodeURIComponent).join('/');
-    const bytes = Buffer.from(await (await get(`https://raw.githubusercontent.com/${SOURCE}/${commit}/${encoded}`)).arrayBuffer());
+    const bytes = Buffer.from(await (await githubGet(`https://raw.githubusercontent.com/${SOURCE}/${commit}/${encoded}`)).arrayBuffer());
     if (blob(bytes) !== source.sha) throw new Error(`Upstream blob mismatch: ${pathname}`);
     return { bytes, entry: { sourcePath: pathname, sourceBlob: source.sha, destinationPath: pathname,
       sha256: digest(bytes), classification: classification(kind, pathname) } };
