@@ -10,6 +10,9 @@ steps:
   - id: prerequisites
     type: shell
     run: bash .specify/scripts/bash/check-prerequisites.sh --require-tasks --include-tasks
+  - id: planning-evidence
+    type: shell
+    run: test -n "$SPECIFY_FEATURE_DIRECTORY" && test -s "$SPECIFY_FEATURE_DIRECTORY/checklist.md" && test -s "$SPECIFY_FEATURE_DIRECTORY/analyze.md"
   - id: governance
     type: shell
     run: bun run governance:check

@@ -24,6 +24,15 @@ const classification = (kind, path) => kind === 'contract'
   ? 'api-contract'
   : path.startsWith('Docs/frontend/') ? 'frontend-experience' : 'upstream-authority';
 
+export function snapshotPaths(root, kind, includePending = false) {
+  if (kind !== 'authority') return PATHS[kind];
+  const registry = JSON.parse(readFileSync(join(root, '.specify/authority-unit-registry.json'), 'utf8'));
+  const manifest = JSON.parse(readFileSync(join(root, manifestPath(kind)), 'utf8'));
+  return [...PATHS.authority, ...registry.units.filter(({owner, path}) =>
+    owner === 'imported' && !PATHS.authority.includes(path) &&
+    (includePending || manifest.files.some(({sourcePath}) => sourcePath === path))).map(({path}) => path)];
+}
+
 function contractVersion(bytes) {
   const { openapi, info, paths } = JSON.parse(bytes);
   if (typeof openapi !== 'string' || typeof info?.version !== 'string' || !paths || !Object.keys(paths).length) {
@@ -32,12 +41,12 @@ function contractVersion(bytes) {
   return { openapi, info: info.version };
 }
 
-export function verifySnapshot(root, kind) {
+export function verifySnapshot(root, kind, admitted = PATHS[kind]) {
   const manifest = JSON.parse(readFileSync(join(root, manifestPath(kind)), 'utf8'));
   if (manifest.sourceRepository !== SOURCE || !commitSyntax.test(manifest.sourceCommit)) {
     throw new Error(`Invalid ${kind} repository or source commit`);
   }
-  const expected = new Set(PATHS[kind]);
+  const expected = new Set(admitted);
   for (const entry of manifest.files) {
     const pathname = entry.sourcePath;
     if (!expected.delete(pathname) || entry.destinationPath !== pathname || entry.classification !== classification(kind, pathname)) {
@@ -66,11 +75,11 @@ async function get(url) {
   return response;
 }
 
-async function sourceSnapshot(kind, commit) {
+async function sourceSnapshot(kind, commit, admitted = PATHS[kind]) {
   if (!commitSyntax.test(commit)) throw new Error('Supply a full lowercase 40-hex backend commit');
   const tree = await (await get(`https://api.github.com/repos/${SOURCE}/git/trees/${commit}?recursive=1`)).json();
   if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Upstream tree is incomplete');
-  const files = await Promise.all(PATHS[kind].map(async (pathname) => {
+  const files = await Promise.all(admitted.map(async (pathname) => {
     const source = tree.tree.find((entry) => entry.type === 'blob' && entry.path === pathname);
     if (!source || source.mode !== '100644') throw new Error(`Missing regular upstream blob: ${pathname}`);
     const encoded = pathname.split('/').map(encodeURIComponent).join('/');
@@ -83,7 +92,7 @@ async function sourceSnapshot(kind, commit) {
 }
 
 export async function verifyRemote(manifest, kind) {
-  const files = await sourceSnapshot(kind, manifest.sourceCommit);
+  const files = await sourceSnapshot(kind, manifest.sourceCommit, manifest.files.map(({sourcePath}) => sourcePath));
   for (const { entry } of files) {
     const local = manifest.files.find(({ sourcePath }) => sourcePath === entry.sourcePath);
     if (entry.sourceBlob !== local.sourceBlob) throw new Error(`Source commit/blob mismatch: ${entry.sourcePath}`);
@@ -101,11 +110,11 @@ async function preview(root, kind, commit, destination) {
   if (!PATHS[kind] || !destination) throw new Error('Usage: preview authority|contract COMMIT NEW_OUTSIDE_DIRECTORY');
   const output = resolve(destination);
   if (output === root || output.startsWith(`${root}/`)) throw new Error('Preview must be outside the checkout');
-  const current = verifySnapshot(root, kind);
-  const files = await sourceSnapshot(kind, commit);
+  const current = verifySnapshot(root, kind, snapshotPaths(root, kind));
+  const files = await sourceSnapshot(kind, commit, snapshotPaths(root, kind, true));
   const manifest = { sourceRepository: SOURCE, sourceCommit: commit, files: files.map(({ entry }) => entry) };
   const changed = manifest.files.filter((entry) => current.files.find((old) =>
-    old.sourcePath === entry.sourcePath).sourceBlob !== entry.sourceBlob).map(({ sourcePath }) => sourcePath);
+    old.sourcePath === entry.sourcePath)?.sourceBlob !== entry.sourceBlob).map(({ sourcePath }) => sourcePath);
   const diff = { changed, classification: changed.length ? 'REVIEW_REQUIRED' : 'IDENTICAL' };
   if (kind === 'contract') {
     const next = files.find(({ entry }) => entry.sourcePath.endsWith('/openapi.json')).bytes;
@@ -133,7 +142,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (command === 'preview') await preview(process.cwd(), ...args);
   else {
     if (!PATHS[command] || args.some((arg) => arg !== '--remote')) throw new Error('Expected authority, contract, or preview');
-    const manifest = verifySnapshot(process.cwd(), command);
+    const manifest = verifySnapshot(process.cwd(), command, snapshotPaths(process.cwd(), command));
     if (args.includes('--remote')) await verifyRemote(manifest, command);
     console.log(`${command} integrity PASS ${manifest.files.length} files at ${manifest.sourceCommit}`);
   }
