@@ -40,6 +40,9 @@ function fixture(t, {
   lifecycle = false,
   sliceKind = 'BUSINESS',
   canonicalBusinessRef = true,
+  businessSelector = 'V1-C36',
+  businessAuthorityUnit = 'V1-TECHNICAL',
+  productAuthoritySelectors = ['U01'],
   verificationType = 'test',
   verificationPath = verificationType === 'test' ? testPath : `tests/evidence/${verificationType}.json`,
 } = {}) {
@@ -72,7 +75,8 @@ function fixture(t, {
   for (const {path} of authorityUnits) {
     mkdirSync(join(root, path, '..'), {recursive: true});
     const text = path === technicalAuthority ? '| V1-C36 | 现有微信小程序为家庭主端，不另建家庭 Web |'
-      : path === productAuthority ? 'U01 synthetic canonical product selector'
+      : path === productAuthority ? productAuthoritySelectors.map((selector) =>
+        `${selector} synthetic canonical product selector`).join('\n')
       : path === engineeringAuthority ? '## 请求、可靠性与隐私\n空态要有服务端证据。' : '# Synthetic Authority';
     write(path, text + '\n');
   }
@@ -97,8 +101,8 @@ function fixture(t, {
     git('-c', 'user.name=Frontend fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '--quiet', '-m', 'Governance self-test fixture');
     return git('rev-parse', 'HEAD');
   };
-  const requirement = canonicalBusinessRef ? 'V1-C36' : '请求、可靠性与隐私';
-  const upstream = canonicalBusinessRef ? '[AUTH:V1-TECHNICAL] V1-C36\n' : '';
+  const requirement = canonicalBusinessRef ? businessSelector : '请求、可靠性与隐私';
+  const upstream = canonicalBusinessRef ? `[AUTH:${businessAuthorityUnit}] ${businessSelector}\n` : '';
   const activeTaskLine = `T001 Exercised declaration [REQ:${requirement}] [VERIFY:${verificationType}:${verificationPath}]`;
   const spec = `**Slice**: FE-001
 **Kind**: ${sliceKind}
@@ -196,6 +200,24 @@ test('a Spec must cite real Authority', async (t) => {
 
 test('a BUSINESS Slice requires a canonical upstream product or technical selector', async (t) => {
   const f = fixture(t, {canonicalBusinessRef: false});
+  await assert.rejects(f.validate(), /business Slice requires an upstream canonical product\/technical selector/);
+});
+
+test('a BUSINESS Slice accepts canonical 010xx child selectors with A-F suffixes', async (t) => {
+  const f = fixture(t, {
+    businessSelector: '01002A',
+    businessAuthorityUnit: 'V1-PRODUCT',
+    productAuthoritySelectors: ['U01', '01002A'],
+  });
+  assert.equal(await f.validate(), 1);
+});
+
+test('a BUSINESS Slice rejects unsupported 010xx letter suffixes even if the text exists upstream', async (t) => {
+  const f = fixture(t, {
+    businessSelector: '01002G',
+    businessAuthorityUnit: 'V1-PRODUCT',
+    productAuthoritySelectors: ['U01', '01002G'],
+  });
   await assert.rejects(f.validate(), /business Slice requires an upstream canonical product\/technical selector/);
 });
 
