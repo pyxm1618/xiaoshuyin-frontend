@@ -27,6 +27,7 @@ const testPath = 'tests/slice-fixture.test.mjs';
 const applicationPath = 'apps/miniprogram/fixture.ts';
 const bindingPath = '.specify/change-binding.json';
 const evidencePath = '.specify/task-evidence.json';
+const productAuthority = 'Docs/V1产品需求.md';
 const technicalAuthority = 'Docs/V1技术设计.md';
 const engineeringAuthority = 'Docs/frontend/engineering/V1前端工程技术设计.md';
 const gitBlob = (bytes) => createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
@@ -56,8 +57,14 @@ function fixture(t, {
     include: [PATHS.contract[1], 'apps/miniprogram/**/*.ts'],
   });
   write('specs/README.md', '# Synthetic planning artifacts\n');
+  const importedIds = new Map([
+    ['Docs/总产品需求.md', 'PRODUCT'],
+    ['Docs/总体技术架构.md', 'ARCHITECTURE'],
+    [productAuthority, 'V1-PRODUCT'],
+    [technicalAuthority, 'V1-TECHNICAL'],
+  ]);
   const authorityUnits = [
-    ...PATHS.authority.map((path, i) => ({id: path === technicalAuthority ? 'V1-TECHNICAL' : `FIXTURE-${i}`, path, owner: 'imported'})),
+    ...PATHS.authority.map((path, i) => ({id: importedIds.get(path) ?? `FIXTURE-${i}`, path, owner: 'imported'})),
     {id: 'FE-ENGINEERING', path: engineeringAuthority, owner: 'frontend'},
     {id: 'FE-DELIVERY', path: 'Docs/frontend/engineering/V1前端开发与验收规范.md', owner: 'frontend'},
     {id: 'FE-INTEGRATION', path: 'Docs/frontend/engineering/前后端合同与集成规范.md', owner: 'frontend'},
@@ -65,6 +72,7 @@ function fixture(t, {
   for (const {path} of authorityUnits) {
     mkdirSync(join(root, path, '..'), {recursive: true});
     const text = path === technicalAuthority ? '| V1-C36 | 现有微信小程序为家庭主端，不另建家庭 Web |'
+      : path === productAuthority ? 'U01 synthetic canonical product selector'
       : path === engineeringAuthority ? '## 请求、可靠性与隐私\n空态要有服务端证据。' : '# Synthetic Authority';
     write(path, text + '\n');
   }
@@ -459,7 +467,8 @@ function addSpec(f, id, citeChangedAuthority) {
   const dir = `specs/${id}-fe-other`;
   mkdirSync(join(f.root, dir));
   const spec = f.spec.replace('FE-001', `FE-${id}`);
-  f.write(dir + '/spec.md', citeChangedAuthority ? spec : spec.replace('[AUTH:V1-TECHNICAL] V1-C36\n', ''));
+  f.write(dir + '/spec.md', citeChangedAuthority ? spec :
+    spec.replace('[AUTH:V1-TECHNICAL] V1-C36\n', '[AUTH:V1-PRODUCT] U01\n'));
   return dir + '/spec.md';
 }
 
@@ -499,7 +508,8 @@ test('F05 requires assessment of all related baseline Specs even if one removes 
   const second = addSpec(f, '002', true);
   const base = f.commit();
   const authority = modifyAuthority(f);
-  f.write(second, f.read(second).toString().replace('[AUTH:V1-TECHNICAL] V1-C36\n', ''));
+  f.write(second, f.read(second).toString().replace(
+    '[AUTH:V1-TECHNICAL] V1-C36\n', '[AUTH:V1-PRODUCT] U01\n'));
   const manifest = JSON.parse(f.read('.specify/sync-impact.json'));
   manifest.snapshots.authority.changedSpecArtifacts = [second];
   f.json('.specify/sync-impact.json', manifest);
@@ -581,8 +591,8 @@ test('F05 applies downstream coverage to an otherwise approved engineering Autho
 
 test('F05 accepts an Authority sync without assessment when no baseline Spec depends on it', async (t) => {
   const f = fixture(t);
-  f.write(specPath, f.spec.replace('[AUTH:V1-TECHNICAL] V1-C36', '[AUTH:FE-ENGINEERING] 请求、可靠性与隐私'));
-  f.write(`${folder}/tasks.md`, `- [ ] ${taskLine.replace('V1-C36', '请求、可靠性与隐私')}\n`);
+  f.write(specPath, f.spec.replace('[AUTH:V1-TECHNICAL] V1-C36', '[AUTH:V1-PRODUCT] U01'));
+  f.write(`${folder}/tasks.md`, `- [ ] ${taskLine.replace('V1-C36', 'U01')}\n`);
   const base = f.commit();
   modifyAuthority(f);
   f.commit();
