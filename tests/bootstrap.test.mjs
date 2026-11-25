@@ -90,7 +90,7 @@ function fixture(t, {
     return git('rev-parse', 'HEAD');
   };
   const requirement = canonicalBusinessRef ? 'V1-C36' : '请求、可靠性与隐私';
-  const upstream = canonicalBusinessRef ? '[AUTH:V1-TECHNICAL] V1-C36\\n' : '';
+  const upstream = canonicalBusinessRef ? '[AUTH:V1-TECHNICAL] V1-C36\n' : '';
   const activeTaskLine = `T001 Exercised declaration [REQ:${requirement}] [VERIFY:${verificationType}:${verificationPath}]`;
   const spec = `**Slice**: FE-001
 **Kind**: ${sliceKind}
