@@ -15,6 +15,9 @@ const authorityImpactPath = '.specify/authority-downstream-impact.json';
 const authorityRefs = (spec) => [...spec.matchAll(/^\[AUTH:([A-Z0-9-]+)\] (.+)$/gm)];
 const unitPath = '.specify/authority-unit-registry.json';
 const featureSyntax = /^\d{3,}-fe-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const verificationTypes = new Set(['test', 'device', 'visual', 'manual']);
+const canonicalBusinessUnits = new Set(['PRODUCT', 'ARCHITECTURE', 'V1-PRODUCT', 'V1-TECHNICAL']);
+const canonicalBusinessSelector = /^(?:U\d{2}|V1-[CDX]\d{2}|A\d{4}|010\d{2})\b/;
 const isImplementation = (path) => ['implementation', 'shared'].includes(pathClass(path));
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const readJson = (root, path) => JSON.parse(readFileSync(join(root, path), 'utf8'));
@@ -43,11 +46,25 @@ function tasks(text, path) {
   const taskMap = new Map();
   for (const line of text.split(/\r?\n/)) {
     if (!/^- \[[ xX]\]/.test(line)) continue;
-    const match = line.match(/^- \[([ xX])\] (T\d{3,})\b.+? \[REQ:([^\]]+)\] \[VERIFY:(tests\/[a-zA-Z0-9._/-]+\.test\.mjs)\]$/);
+    const match = line.match(/^- \[([ xX])\] (T\d{3,})\b.+? \[REQ:([^\]]+)\] \[VERIFY:(?:(test|device|visual|manual):)?([^\]]+)\]$/);
     check(match, `${path}: malformed task ${line}`);
     check(!taskMap.has(match[2]), `${path}: duplicate task ${match[2]}`);
-    check(!match[4].split('/').includes('..'), `${path}: invalid verification path`);
-    taskMap.set(match[2], { complete: match[1] !== ' ', req: match[3], verify: match[4], digest: sha256(line.slice(6)) });
+    const verifyType = match[4] || 'test';
+    const verifyPath = match[5];
+    check(verificationTypes.has(verifyType) && !verifyPath.split('/').includes('..'), `${path}: invalid verification reference`);
+    if (verifyType === 'test') {
+      check(/^tests\/[a-zA-Z0-9._/-]+\.test\.mjs$/.test(verifyPath), `${path}: test verification must reference tests/**/*.test.mjs`);
+    } else {
+      check(/^tests\/evidence\/[a-zA-Z0-9._/-]+\.json$/.test(verifyPath),
+        `${path}: ${verifyType} verification must reference tests/evidence/*.json`);
+    }
+    taskMap.set(match[2], {
+      complete: match[1] !== ' ',
+      req: match[3],
+      verifyType,
+      verify: verifyPath,
+      digest: sha256(line.slice(6)),
+    });
   }
   check(taskMap.size > 0, `${path}: no tasks`);
   return taskMap;
@@ -67,11 +84,18 @@ export function validateSpecs(root, units) {
     const spec = readFileSync(join(root, folder, 'spec.md'), 'utf8');
     sections(spec, ['Upstream Traceability', 'Scope', 'Non-goals', 'Acceptance Scenarios', 'Acceptance Evidence'], folder);
     check(spec.includes(`**Slice**: ${id}\n`), `${folder}: missing exact slice ID ${id}`);
+    const kind = spec.match(/^\*\*Kind\*\*: (BUSINESS|ENGINEERING)$/m)?.[1];
+    check(kind, `${folder}: missing or invalid Slice Kind`);
     const refs = authorityRefs(spec);
     check(refs.length && refs.every(([, unit]) => units.has(unit)), `${folder}: missing or invalid Authority reference`);
     for (const [, unit, selector] of refs) {
       const source = readFileSync(join(root, units.get(unit)), 'utf8');
       check(selector.trim().length > 2 && source.includes(selector.trim()), `${folder}: unresolved Authority selector ${unit} ${selector}`);
+    }
+    if (kind === 'BUSINESS') {
+      check(refs.some(([, unit, selector]) => canonicalBusinessUnits.has(unit) &&
+        canonicalBusinessSelector.test(selector.trim())),
+      `${folder}: business Slice requires an upstream canonical product/technical selector`);
     }
     const plan = join(root, folder, 'plan.md');
     let allowed = [];
@@ -90,7 +114,7 @@ export function validateSpecs(root, units) {
       records = tasks(readFileSync(taskPath, 'utf8'), taskPath);
       for (const task of records.values()) check(refs.some(([, , selector]) => selector.trim() === task.req), `${folder}: unbound task requirement ${task.req}`);
     }
-    features.set(name, { id, records, allowed, forbidden });
+    features.set(name, { id, kind, records, allowed, forbidden });
   }
   return features;
 }
@@ -226,10 +250,23 @@ function validateDelivery(root, base, changed, features, ownership) {
     completed.every((task) => task.feature === binding.feature), 'Task Evidence belongs to a different candidate/base');
   check(sameSet(Object.keys(evidence.tasks), completed.map(({ id }) => id)), 'Task Evidence must cover exactly the current completed tasks');
   const evidencedPaths = new Set();
-  for (const { id, digest, verify } of completed) {
+  for (const { id, digest, verifyType, verify } of completed) {
     const proof = evidence.tasks[id];
     check(proof.taskDigest === digest && paths.includes(verify) && proof.files.includes(verify) &&
       proof.files.every((path) => paths.includes(path)), `Invalid or historical Task Evidence: ${id}`);
+    if (verifyType !== 'test') {
+      const verification = readJson(root, verify);
+      check(verification.type === verifyType && verification.result === 'PASS' &&
+        typeof verification.reference === 'string' && verification.reference.trim(),
+      `Invalid ${verifyType} verification evidence: ${id}`);
+      if (verification.head !== undefined) {
+        check(/^[a-f0-9]{40}$/.test(verification.head), `Invalid verification evidence head: ${id}`);
+      }
+      if (verification.version !== undefined) {
+        check(typeof verification.version === 'string' && verification.version.trim(),
+          `Invalid verification evidence version: ${id}`);
+      }
+    }
     for (const path of proof.files) evidencedPaths.add(path);
   }
   check(sameSet([...evidencedPaths], paths), 'Uncovered implementation changes');
