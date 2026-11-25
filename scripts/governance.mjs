@@ -17,7 +17,7 @@ const unitPath = '.specify/authority-unit-registry.json';
 const featureSyntax = /^\d{3,}-fe-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const verificationTypes = new Set(['test', 'device', 'visual', 'manual']);
 const canonicalBusinessUnits = new Set(['PRODUCT', 'ARCHITECTURE', 'V1-PRODUCT', 'V1-TECHNICAL']);
-const canonicalBusinessSelector = /^(?:U\d{2}|V1-[CDX]\d{2}|A\d{4}|010\d{2})\b/;
+const canonicalBusinessSelector = /^(?:U\d{2}|V1-[CDX]\d{2}|A\d{4}|010\d{2}[A-F]?)\b/;
 const isImplementation = (path) => ['implementation', 'shared'].includes(pathClass(path));
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const readJson = (root, path) => JSON.parse(readFileSync(join(root, path), 'utf8'));
