@@ -30,9 +30,18 @@ const evidencePath = '.specify/task-evidence.json';
 const technicalAuthority = 'Docs/V1技术设计.md';
 const engineeringAuthority = 'Docs/frontend/engineering/V1前端工程技术设计.md';
 const gitBlob = (bytes) => createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
-const taskLine = `T001 Exercised declaration [REQ:V1-C36] [VERIFY:${testPath}]`;
+const taskLine = `T001 Exercised declaration [REQ:V1-C36] [VERIFY:test:${testPath}]`;
 
-function fixture(t, { audit = true, shared = false, missingPlanArtifact, lifecycle = false } = {}) {
+function fixture(t, {
+  audit = true,
+  shared = false,
+  missingPlanArtifact,
+  lifecycle = false,
+  sliceKind = 'BUSINESS',
+  canonicalBusinessRef = true,
+  verificationType = 'test',
+  verificationPath = verificationType === 'test' ? testPath : `tests/evidence/${verificationType}.json`,
+} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'xiaoshuyin-fe-governance-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const write = (path, text) => writeFileSync(join(root, path), text);
@@ -80,14 +89,46 @@ function fixture(t, { audit = true, shared = false, missingPlanArtifact, lifecyc
     git('-c', 'user.name=Frontend fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '--quiet', '-m', 'Governance self-test fixture');
     return git('rev-parse', 'HEAD');
   };
-  const spec = '**Slice**: FE-001\n\n## Upstream Traceability\n[AUTH:V1-TECHNICAL] V1-C36\n[AUTH:FE-ENGINEERING] 请求、可靠性与隐私\n\n## Scope\nFixture\n\n## Non-goals\nProduction\n\n## Acceptance Scenarios\nFixture\n\n## Acceptance Evidence\nTest\n';
+  const requirement = canonicalBusinessRef ? 'V1-C36' : '请求、可靠性与隐私';
+  const upstream = canonicalBusinessRef ? '[AUTH:V1-TECHNICAL] V1-C36\\n' : '';
+  const activeTaskLine = `T001 Exercised declaration [REQ:${requirement}] [VERIFY:${verificationType}:${verificationPath}]`;
+  const spec = `**Slice**: FE-001
+**Kind**: ${sliceKind}
+
+## Upstream Traceability
+${upstream}[AUTH:FE-ENGINEERING] 请求、可靠性与隐私
+
+## Scope
+Fixture
+
+## Non-goals
+Production
+
+## Acceptance Scenarios
+Fixture
+
+## Acceptance Evidence
+Test
+`;
   const bootstrapBase = lifecycle ? commit() : undefined;
   write(`${folder}/spec.md`, spec);
   const specified = lifecycle ? commit() : undefined;
   if (lifecycle) write(`${folder}/spec.md`, spec + '\n## Clarifications\nSynthetic clarification frozen.\n');
   const frozen = lifecycle ? commit() : undefined;
-  write(`${folder}/plan.md`, '## Upstream Traceability\n\n## Constitution Check\n\n## Scope Contract\n[ALLOW] apps/miniprogram/\n[ALLOW] tests/slice-fixture.test.mjs\n[ALLOW] package.json\n\n## Verification Plan\n\n## STOP Conditions\n');
-  write(`${folder}/tasks.md`, `- [ ] ${taskLine}\n`);
+  write(`${folder}/plan.md`, `## Upstream Traceability
+
+## Constitution Check
+
+## Scope Contract
+[ALLOW] apps/miniprogram/
+[ALLOW] ${verificationPath}
+[ALLOW] package.json
+
+## Verification Plan
+
+## STOP Conditions
+`);
+  write(`${folder}/tasks.md`, `- [ ] ${activeTaskLine}\n`);
   write(`${folder}/checklist.md`, '# Captured checklist\n');
   write(`${folder}/analyze.md`, '# Captured cross-artifact analysis\n');
   const analyzed = lifecycle ? commit() : undefined;
@@ -96,22 +137,32 @@ function fixture(t, { audit = true, shared = false, missingPlanArtifact, lifecyc
   if (missingPlanArtifact) rmSync(join(root, folder, missingPlanArtifact));
   const audited = lifecycle ? commit() : undefined;
   json(ownership, { schemaVersion: 1, repository: REPOSITORY, owners: {
-    [applicationPath]: [feature], [testPath]: [feature], ...(shared && {'package.json': [feature]}) } });
+    [applicationPath]: [feature], [verificationPath]: [feature], ...(shared && {'package.json': [feature]}) } });
   const base = commit();
   const validate = (options = {}) => validateGovernance(root, { base, repository: REPOSITORY, ...options });
   const delivery = (lawful = true, deliveryBase = base) => {
     const code = lawful ? applicationPath : 'apps/miniprogram/unauthorized.ts';
     write(code, 'export {};\n');
-    write(testPath, 'import { test } from "node:test"; import assert from "node:assert/strict"; test("fixture", () => assert.equal(typeof 1, "number"));\n');
+    mkdirSync(join(root, verificationPath, '..'), {recursive: true});
+    if (verificationType === 'test') {
+      write(verificationPath, 'import { test } from "node:test"; import assert from "node:assert/strict"; test("fixture", () => assert.equal(typeof 1, "number"));\n');
+    } else {
+      json(verificationPath, {
+        type: verificationType,
+        result: 'PASS',
+        reference: `Synthetic ${verificationType} acceptance evidence`,
+      });
+    }
     write(`${folder}/tasks.md`, read(`${folder}/tasks.md`).toString().replace(/^- \[ \] T001 /m, '- [x] T001 '));
     if (shared) json('package.json', {...JSON.parse(read('package.json')), description: 'Synthetic shared tooling edit'});
-    const paths = [code, testPath, ...(shared ? ['package.json'] : [])];
+    const paths = [code, verificationPath, ...(shared ? ['package.json'] : [])];
     json(bindingPath, { repository: REPOSITORY, feature, kind: shared ? 'shared-engineering' : 'implementation',
       files: Object.fromEntries(paths.map((path) => [path, digest(read(path))])) });
     json(evidencePath, { repository: REPOSITORY, feature, base: deliveryBase, binding: digest(read(bindingPath)),
-      tasks: { T001: { taskDigest: digest(taskLine), files: paths } } });
+      tasks: { T001: { taskDigest: digest(activeTaskLine), files: paths } } });
   };
-  return { root, write, json, read, spec, commit, validate, delivery, base, bootstrapBase, specified, frozen, analyzed, audited, git };
+  return { root, write, json, read, spec, activeTaskLine, verificationPath, commit, validate, delivery, base,
+    bootstrapBase, specified, frozen, analyzed, audited, git };
 }
 
 test('local authority and contract match all listed blobs and versions', () => {
@@ -133,6 +184,39 @@ test('a Spec must cite real Authority', async (t) => {
   f.write(`${folder}/spec.md`, f.spec.replace('[AUTH:V1-TECHNICAL] V1-C36', '[AUTH:V1-TECHNICAL] missing selector'));
   f.commit();
   await assert.rejects(f.validate(), /unresolved Authority selector/);
+});
+
+test('a BUSINESS Slice requires a canonical upstream product or technical selector', async (t) => {
+  const f = fixture(t, {canonicalBusinessRef: false});
+  await assert.rejects(f.validate(), /business Slice requires an upstream canonical product\/technical selector/);
+});
+
+test('an ENGINEERING Slice may rely on frontend engineering Authority without a business selector', async (t) => {
+  const f = fixture(t, {sliceKind: 'ENGINEERING', canonicalBusinessRef: false});
+  assert.equal(await f.validate(), 1);
+});
+
+test('device, visual and manual verification use current structured evidence instead of fake test files', async (t) => {
+  for (const verificationType of ['device', 'visual', 'manual']) {
+    const f = fixture(t, {verificationType});
+    f.delivery();
+    f.commit();
+    assert.equal(await f.validate(), 1);
+  }
+});
+
+test('non-test verification evidence must record an accepted result and reference', async (t) => {
+  const f = fixture(t, {verificationType: 'device'});
+  f.delivery();
+  f.json(f.verificationPath, {type: 'device', result: 'FAIL', reference: 'Synthetic failed device check'});
+  const binding = JSON.parse(f.read(bindingPath));
+  binding.files[f.verificationPath] = digest(f.read(f.verificationPath));
+  f.json(bindingPath, binding);
+  const evidence = JSON.parse(f.read(evidencePath));
+  evidence.binding = digest(f.read(bindingPath));
+  f.json(evidencePath, evidence);
+  f.commit();
+  await assert.rejects(f.validate(), /Invalid device verification evidence/);
 });
 
 test('modified authority or manifest without matching hashes fails', async (t) => {
