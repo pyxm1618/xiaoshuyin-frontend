@@ -1,1 +1,42 @@
-{"schemaVersion":1,"repository":"pyxm1618/xiaoshuyin-frontend","owners":{}}
+{
+  "schemaVersion": 1,
+  "repository": "pyxm1618/xiaoshuyin-frontend",
+  "owners": {
+    "apps/miniprogram/app.ts": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "apps/miniprogram/app.json": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "apps/miniprogram/app.wxss": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "apps/miniprogram/platform.d.ts": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "apps/miniprogram/pages/bootstrap/": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "apps/miniprogram/transport/": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "apps/miniprogram/probes/": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "project.config.json": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "package.json": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "bun.lock": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "tests/fe-001/": [
+      "001-fe-wechat-runtime-transport"
+    ],
+    "tests/evidence/fe-001/": [
+      "001-fe-wechat-runtime-transport"
+    ]
+  }
+}
