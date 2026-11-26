@@ -10,5 +10,5 @@
     "noEmit": true,
     "types": []
   },
-  "include": ["packages/generated/openapi.d.ts", "apps/miniprogram/**/*.ts"]
+  "include": ["packages/generated/openapi.d.ts", "apps/miniprogram/**/*.ts", "tests/fe-001/contract.types.ts"]
 }
