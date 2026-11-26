@@ -1,1 +1,2 @@
 <view class="bootstrap">{{entry}}</view>
+<view class="bootstrap-sdk">{{sdkVersion}}</view>
