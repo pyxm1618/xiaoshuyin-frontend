@@ -1,0 +1,18 @@
+{
+  "feature": "001-fe-wechat-runtime-transport",
+  "role": "Plan AI 2",
+  "decision": "PASS",
+  "evidence": "Manual pre-implementation review on actual five-artifact GitHub candidate f614bd295cdbcb3b0fa806ab6beab2c1dc44307f (PR #12, frontend main 76e103ddd156f0210afb80f8fda54e9b4c2df5cc, backend main d043d07a5d9a3aa3766ff54a1582358fe5ad905c). Read back all five files by exact commit and by blob, identical; frozen spec blob 8b410037180fbb4383c5ee3d5567934a429e5556. SHA-256 recomputed from actual UTF-8 with governance task-box normalization; implementation of SHA-256 cross-checked against empty/abc vectors and manifest-pinned generated TypeScript hash. Actual current upstream tree: Authority 9/9, contract 2/2 matching. Parsed generated JSON and TS getMe operation; read actual backend route/auth/registration and governing FE Authority, templates and validators. FR 7/7, AC 9/9; all 14 task IDs unique, unchecked, exact REQ selectors and VERIFY paths valid and within classified allowed paths. Plan gates actual openapi-fetch compatibility before formal transport; RED/GREEN/REFACTOR, lifecycle, real isolated 200/401 and separate chunk probe, candidate binding and device evidence checked. No scope drift or overengineering. Concrete Developer prerequisites remain: planning merge/Owner approval, separate reviewed Ownership, tsconfig-only and verification-entry governance changes, actual platform/backend/credential/stream dependencies for applicable steps. None was performed or claimed passed. GitHub-native authoring and manual Audit 1, tracked Spec Kit 1.2.1 setup-plan/setup-tasks/check-prerequisites and frontend-audit1 CLI workflow not executed; no fabricated CLI evidence. Chief/Owner must resolve formal path difference and confirm current planning exact-head CI before admission. Initial spec-only CI 45791531687 6/6 PASS is not new-head CI. No implementation, Audit 2 or merge authorized by this record.",
+  "artifacts": {
+    "spec.md": "64e16c9084396d39b28a0471b515946825c8801b851e313557f2bb98532c3807",
+    "plan.md": "e157a1986efe87f2e288d53ae429630756b2a6ce0002574628541616e0a1b594",
+    "checklist.md": "a30bcebd3462c1856e03c4debc5b5ea20eb21853d0dfdcc86d1741d830615848",
+    "tasks.md": "3245527c9c857a1974beea185b181286485cabceb9d1287879343ac37dcfed6a",
+    "analyze.md": "0f73d8b3a87e2b5e9fec77abb7deac19aaf60a06f85371ad3e8e1d3c926bf94a"
+  },
+  "semanticAssessment": {
+    "businessSemantics": "NONE",
+    "rationale": "Actual allowed scope is native diagnostic bootstrap, generated typed transport, owner-local request lifecycle, existing server-owned self-read and isolated platform chunk probe. No formal user journey, login, session, family, authorization decision, domain state, persistent data mutation or backend API change is introduced. Phase NOT APPLICABLE and Step 4 NONE; engineering/contract/device obligations remain, future business and experience/visual gates not waived.",
+    "evidence": "Frozen spec and candidate plan Scope Contract/Dependencies, analyze.md Business semantics assessment, FR-001–007/AC-01–09 and T001–T014; FE-ENGINEERING 目录和依赖方向 / 请求、可靠性与隐私; FE-DELIVERY Slice 语义声明与实现准入; FE-INTEGRATION 联调边界; actual backend apps/server/api/src/routes/me.ts blob 520ed19156bf2ec2c30addc057c66dd253297c7f, auth plugin blob 1c9c3996abc492a3d7ba09653a14f436aabc0018; generated contract JSON blob 68d3b9e620a9fc291d21b3b830ba426a3bc13101."
+  }
+}
