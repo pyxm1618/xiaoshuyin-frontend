@@ -11,7 +11,12 @@
     "governance:check": "node scripts/governance.mjs",
     "typecheck": "node ./node_modules/typescript/bin/tsc --project tsconfig.json --noEmit",
     "test": "node --test tests/bootstrap.test.mjs",
+    "test:app": "vitest run tests/fe-001",
     "verify-all": "node scripts/verify-all.mjs"
   },
-  "devDependencies": {"typescript": "5.9.3"}
+  "devDependencies": {
+    "openapi-fetch": "0.17.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
 }
