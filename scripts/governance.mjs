@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { PATHS, isAdditionalAuthority, manifestPath, verifyRemote, verifySnapshot } from './upstream.mjs';
+import { PATHS, isAdditionalAuthority, manifestPath, verifyRemote, verifySnapshot, verifyFreshness } from './upstream.mjs';
 
 import { engineeringApproval, pathClass, planningFiles, validateAuditAdmission } from './governance-policy.mjs';
 
@@ -92,10 +92,30 @@ export function validateSpecs(root, units) {
       const source = readFileSync(join(root, units.get(unit)), 'utf8');
       check(selector.trim().length > 2 && source.includes(selector.trim()), `${folder}: unresolved Authority selector ${unit} ${selector}`);
     }
-    if (kind === 'BUSINESS') {
+    const businessSemantics = spec.match(/^\*\*Business Semantics\*\*: (NONE|CHANGED)$/m)?.[1];
+    check(businessSemantics && (kind !== 'BUSINESS' || businessSemantics === 'CHANGED'),
+      `${folder}: missing or contradictory Business Semantics declaration`);
+    sections(spec, ['Business Semantics Assessment', 'Backend and Contract Dependencies'], folder);
+    const assessment = spec.match(/^## Business Semantics Assessment\n([\s\S]*?)(?=^## |$(?![\s\S]))/m)?.[1];
+    check(assessment?.trim(), `${folder}: missing Business Semantics rationale`);
+    if (businessSemantics === 'NONE') {
+      check(/^\*\*Phase\*\*: NOT APPLICABLE$/m.test(spec), `${folder}: engineering-only Phase needs NOT APPLICABLE and rationale`);
+    }
+    if (businessSemantics === 'CHANGED') {
       check(refs.some(([, unit, selector]) => canonicalBusinessUnits.has(unit) &&
         canonicalBusinessSelector.test(selector.trim())),
       `${folder}: business Slice requires an upstream canonical product/technical selector`);
+      check(refs.some(([, unit, selector]) => unit === 'V1-PRODUCT' && canonicalBusinessSelector.test(selector.trim())),
+        `${folder}: changed business semantics require a canonical product requirement`);
+      check(refs.some(([, unit, selector]) => unit === 'V1-TECHNICAL' && /^Phase [1-6]：/.test(selector.trim())),
+        `${folder}: changed business semantics require technical Phase 1–6 traceability`);
+      const dependencies = [...spec.matchAll(/^\[CONTRACT\] (.+)$/gm)].map((match) => match[1]);
+      const contract = readJson(root, PATHS.contract[0]);
+      check(dependencies.length && dependencies.every((dependency) => {
+        if (/^GAP: \S.+/.test(dependency)) return true;
+        const operation = dependency.match(/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) (\/\S+)$/);
+        return operation && Object.hasOwn(contract.paths[operation[2]] ?? {}, operation[1].toLowerCase());
+      }), `${folder}: missing or unknown current contract capability; record GAP explicitly`);
     }
     const plan = join(root, folder, 'plan.md');
     let allowed = [];
@@ -114,7 +134,7 @@ export function validateSpecs(root, units) {
       records = tasks(readFileSync(taskPath, 'utf8'), taskPath);
       for (const task of records.values()) check(refs.some(([, , selector]) => selector.trim() === task.req), `${folder}: unbound task requirement ${task.req}`);
     }
-    features.set(name, { id, kind, records, allowed, forbidden });
+    features.set(name, { id, kind, businessSemantics, contractGap: /^\[CONTRACT\] GAP:/m.test(spec), records, allowed, forbidden });
   }
   return features;
 }
@@ -196,6 +216,35 @@ function validateAuthorityDownstream(root, base, changed) {
   }
 }
 
+function validateAcceptanceEvidence(root, record, {base, paths, binding, id}) {
+  const fail = (condition) => check(condition, `Invalid or stale acceptance evidence: ${id}`);
+  const text = (value) => typeof value === 'string' && value.trim().length > 0;
+  const candidatePaths = paths.filter((path) => !path.startsWith('tests/evidence/'));
+  fail(record.base === base && record.candidateFiles && candidatePaths.length > 0 &&
+    sameSet(Object.keys(record.candidateFiles), candidatePaths) &&
+    candidatePaths.every((path) => record.candidateFiles[path] === binding.files[path]));
+  const units = readJson(root, unitPath).units;
+  fail(Array.isArray(record.design) && record.design.length > 0 && record.design.every((entry) => {
+    const unit = units.find(({id}) => id === entry.unit);
+    if (!unit || !text(entry.selector)) return false;
+    const bytes = readFileSync(join(root, unit.path));
+    return entry.sha256 === sha256(bytes) && bytes.toString().includes(entry.selector);
+  }));
+  fail(text(record.observedAt) && Number.isFinite(Date.parse(record.observedAt)) && text(record.environment));
+  fail(Array.isArray(record.operations) && record.operations.length > 0 && record.operations.every((operation) =>
+    text(operation.action) && text(operation.expected) && text(operation.actual)));
+  fail(Array.isArray(record.artifacts) && (record.type === 'manual' || record.artifacts.length > 0) &&
+    record.artifacts.every((artifact) => typeof artifact.path === 'string' &&
+      /^tests\/evidence\/[a-zA-Z0-9._/-]+\.(png|jpg|jpeg|webp|mp4|mov|txt|log)$/.test(artifact.path) &&
+      !artifact.path.split('/').includes('..') && paths.includes(artifact.path) &&
+      artifact.sha256 === binding.files[artifact.path]));
+  fail(Array.isArray(record.defects) && record.defects.every((defect) => text(defect.description) &&
+    typeof defect.blocking === 'boolean' && !defect.blocking));
+  fail(Array.isArray(record.unverified) && record.unverified.length === 0);
+  // These are provenance/coverage checks. Independent Audit 2 judges actual media,
+  // operations and experience against Exact Head; JSON cannot establish reality.
+}
+
 function validateDelivery(root, base, changed, features, ownership) {
   const implementation = changed.filter(isImplementation);
   const [bindingPath, evidencePath] = evidenceFiles;
@@ -231,6 +280,7 @@ function validateDelivery(root, base, changed, features, ownership) {
     return git(root, 'show', `${base}:${path}`);
   });
   const feature = features.get(binding.feature);
+  check(!feature.contractGap, `Contract gap blocks implementation: ${binding.feature}`);
   const pathMatches = (path, prefix) => path === prefix || (prefix.endsWith('/') && path.startsWith(prefix));
   const featurePath = `specs/${binding.feature}/`;
   const protectedPaths = changed.filter((path) => !isImplementation(path) && !evidenceFiles.includes(path));
@@ -266,6 +316,7 @@ function validateDelivery(root, base, changed, features, ownership) {
         check(typeof verification.version === 'string' && verification.version.trim(),
           `Invalid verification evidence version: ${id}`);
       }
+      validateAcceptanceEvidence(root, verification, {base, paths, binding, id});
     }
     for (const path of proof.files) evidencedPaths.add(path);
   }
@@ -368,12 +419,20 @@ export async function validateGovernance(root, { base, repository, remote = fals
       if (changed.includes(engineeringApproval)) check(changed.length === 1, 'Engineering Authority approval requires its own PR');
       const sync = validateSync(root, base, changed, authorityPaths);
       validateAuthorityDownstream(root, base, changed);
-      if (remote) await Promise.all(sync.map((kind) => verifyRemote(kind === 'authority' ? authority : contract, kind)));
+      if (remote) {
+        await Promise.all(sync.map((kind) => verifyRemote(kind === 'authority' ? authority : contract, kind)));
+        if (sync.length || changed.some((path) => isImplementation(path) || pathClass(path) === 'planning')) {
+          await Promise.all([verifyFreshness(authority, 'authority'), verifyFreshness(contract, 'contract')]);
+        }
+      }
       const baseOwnership = JSON.parse(git(root, 'show', `${base}:${ownershipPath}`));
       validateDelivery(root, base, changed, features, baseOwnership);
     }
   }
-  if (remote && !base) await Promise.all([verifyRemote(authority, 'authority'), verifyRemote(contract, 'contract')]);
+  if (remote && !base) {
+    await Promise.all([verifyRemote(authority, 'authority'), verifyRemote(contract, 'contract')]);
+    await Promise.all([verifyFreshness(authority, 'authority'), verifyFreshness(contract, 'contract')]);
+  }
   return features.size;
 }
 

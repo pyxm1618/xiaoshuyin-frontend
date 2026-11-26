@@ -26,7 +26,8 @@ const classification = (kind, path) => kind === 'contract'
   : path.startsWith('Docs/frontend/') ? 'frontend-experience' : 'upstream-authority';
 
 const authorityRegistry = '.specify/authority-unit-registry.json';
-export const isAdditionalAuthority = (path) => /^Docs\/frontend\/step-4\/[a-zA-Z0-9\u3400-\u9fff_-]+\.md$/.test(path);
+export const isAdditionalAuthority = (path) => !PATHS.authority.includes(path) &&
+  /^Docs\/frontend\/(?:design-system|screens)\/[a-zA-Z0-9\u3400-\u9fff_-]+\.md$/.test(path);
 
 function authorityScope(root, base, manifest) {
   if (base !== undefined && !commitSyntax.test(base)) throw new Error('Governance base must be an exact commit SHA');
@@ -38,11 +39,12 @@ function authorityScope(root, base, manifest) {
       owner === 'imported' && isAdditionalAuthority(path)).map(({path}) => path)
     : [];
   const listed = new Set(manifest.files.map(({sourcePath}) => sourcePath));
-  const directory = 'Docs/frontend/step-4';
-  if (existsSync(join(root, directory))) {
+  for (const directory of ['Docs/frontend/design-system', 'Docs/frontend/screens', 'Docs/frontend/step-4']) {
+    if (!existsSync(join(root, directory))) continue;
     for (const name of readdirSync(join(root, directory))) {
       const path = `${directory}/${name}`;
-      if (!admitted.includes(path) || !listed.has(path)) {
+      if (PATHS.authority.includes(path)) continue;
+      if (!isAdditionalAuthority(path) || !admitted.includes(path) || !listed.has(path)) {
         throw new Error(`Unexpected Authority path without prior admission and sync: ${path}`);
       }
     }
@@ -130,8 +132,33 @@ export async function verifyRemote(manifest, kind) {
   const files = await sourceSnapshot(kind, manifest.sourceCommit, manifest.files.map(({sourcePath}) => sourcePath));
   for (const { entry } of files) {
     const local = manifest.files.find(({ sourcePath }) => sourcePath === entry.sourcePath);
-    if (entry.sourceBlob !== local.sourceBlob) throw new Error(`Source commit/blob mismatch: ${entry.sourcePath}`);
+    if (entry.sourceBlob !== local.sourceBlob) throw new Error(`INTEGRITY: Source commit/blob mismatch: ${entry.sourcePath}`);
   }
+}
+
+// Integrity establishes the pinned source; freshness compares only imported files
+// with one resolved main commit. Unrelated backend changes do not require a sync.
+export async function verifyFreshness(manifest, kind, { get = githubGet } = {}) {
+  if (!PATHS[kind] || manifest.sourceRepository !== SOURCE || !commitSyntax.test(manifest.sourceCommit) ||
+      !Array.isArray(manifest.files) || !manifest.files.length) {
+    throw new Error(`Invalid ${kind} freshness manifest`);
+  }
+  const reference = await (await get(`https://api.github.com/repos/${SOURCE}/git/ref/heads/main`)).json();
+  const main = reference.object?.sha;
+  if (reference.ref !== 'refs/heads/main' || reference.object?.type !== 'commit' || !commitSyntax.test(main)) {
+    throw new Error('Invalid upstream main reference');
+  }
+  const tree = await (await get(`https://api.github.com/repos/${SOURCE}/git/trees/${main}?recursive=1`)).json();
+  if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Upstream main tree is incomplete');
+  const changed = manifest.files.filter(({sourcePath, sourceBlob}) => {
+    const upstream = tree.tree.filter((entry) => entry.path === sourcePath);
+    return upstream.length !== 1 || upstream[0].type !== 'blob' ||
+      upstream[0].mode !== '100644' || upstream[0].sha !== sourceBlob;
+  }).map(({sourcePath}) => sourcePath);
+  if (changed.length) {
+    throw new Error(`STALE ${kind}: upstream main ${main} differs from pinned ${manifest.sourceCommit}: ${changed.join(', ')}; impact assessment and controlled sync required`);
+  }
+  return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT', files: manifest.files.length };
 }
 
 function operations(bytes) {
@@ -179,7 +206,10 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   else {
     if (!PATHS[command] || args.some((arg) => arg !== '--remote')) throw new Error('Expected authority, contract, or preview');
     const manifest = verifySnapshot(process.cwd(), command, { base: process.env.GOVERNANCE_BASE || undefined });
-    if (args.includes('--remote')) await verifyRemote(manifest, command);
+    if (args.includes('--remote')) {
+      await verifyRemote(manifest, command);
+      console.log(JSON.stringify(await verifyFreshness(manifest, command)));
+    }
     console.log(`${command} integrity PASS ${manifest.files.length} files at ${manifest.sourceCommit}`);
   }
 }
