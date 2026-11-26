@@ -1,0 +1,16 @@
+- initialize
+
+✔ IDE server has started, listening on http://127.0.0.1:32562
+- preparing
+- Fetching AppID () permissions
+✔ Using AppID: wx746a39363f67ae95
+- Preview
+✔ preview
+
+┌─────────┬─────────┬─────────────┐
+│ (index) │ size    │ size (Byte) │
+├─────────┼─────────┼─────────────┤
+│ TOTAL   │ '370 B' │ 370         │
+└─────────┴─────────┴─────────────┘
+
+
