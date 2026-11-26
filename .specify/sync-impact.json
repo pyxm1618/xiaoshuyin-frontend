@@ -1,15 +1,16 @@
 {
   "repository": "pyxm1618/xiaoshuyin-frontend",
   "snapshots": {
-    "contract": {
+    "authority": {
       "previous": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
-      "next": "9a1589a88729be46eadf81279d8a1eb7628cf29b",
+      "next": "ef477bbb8be846276e544e154a597466f5c68d70",
       "files": [
-        "packages/generated/openapi.json",
-        "packages/generated/openapi.d.ts"
+        "Docs/V1技术设计.md"
       ],
-      "rationale": "Reviewed full generated OpenAPI and TypeScript diff at upstream main 9a1589a88729be46eadf81279d8a1eb7628cf29b. PhoneUseContractDto now requires reviewState CURRENT|NEEDS_REVIEW and permits nullable childParticipationId; SavePhoneUseContractDraftRequest no longer requires childParticipationId. New POST /api/v1/cases/{id}/digital-use/contract/{version}/review requires bearer authentication, Idempotency-Key, exact case/draft/update versions and NO_MATERIAL_CHANGE outcome; returns PhoneUseContractDto or documented 401/403/404/409/422/500 errors. No operations removed; no other request/response/schema/media/stream changes. Downstream convergence: no application code, no registered FE business Specs, no handwritten DTO or mock API exists; generated artifacts remain the only client contract. Nullable/optional/reviewState handling and review invocation remain future scoped Slice obligations. All paths remain CONTRACT-LISTED only; test environment, platform compatibility and APPROVED-FOR-TARGET remain unverified. AI run streaming contracts are still absent and BLOCKED. Source does not prove deployment/production readiness. Revert via reviewed Git PR if necessary; no data migration or parallel client exists.",
-      "changedSpecArtifacts": []
+      "rationale": "Reviewed the single-file Authority diff at backend candidate ef477bbb8be846276e544e154a597466f5c68d70 (stacked on backend PR #155 topology and carried by backend PR #156). Docs/V1技术设计.md blob afef9fcc4af41b6137e5020717135972a3d515fc -> decc923ad106b31c956cd767f667cbea1a262e0a. Changes are confined to registered units AUTH-V1T-135 (## 27A. API 契约与强类型客户端) and AUTH-V1T-211 (### API / Client Contract): the operations console keeps the openapi-fetch typed client, the mini program uses wx.request behind a thin typed transport adapter over the same generated TypeScript types, with explicit prohibitions on a second DTO/schema, a generic Fetch polyfill, global retry/interceptor frameworks and custom bundling, and a mandatory real target-base-library verification matrix before formal Transport implementation; the V1 final acceptance clause now requires no-drift for both clients. Everything else is byte-identical, including §18.4 Chunked Streaming Contract, the stack table, the §4.1 dependency lock and the Docs/总体技术架构.md toolchain statements, because openapi-fetch remains a real V1 dependency for the operations client and the Zod -> Fastify -> OpenAPI -> generated types chain is untouched. No product requirement, API contract, generated artifact, backend implementation or business semantics changed. Downstream convergence: the only registered frontend Spec that references V1-TECHNICAL is FE-001; its spec.md records the Authority amendment and defers the FR/AC rewording to the separate targeted planning amendment PR, so no Developer execution is authorized by this sync. All FE-001 runtime, device, integration and delivery evidence remains NOT VERIFIED.",
+      "changedSpecArtifacts": [
+        "specs/001-fe-wechat-runtime-transport/spec.md"
+      ]
     }
   }
 }

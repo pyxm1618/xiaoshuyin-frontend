@@ -21,6 +21,12 @@
 
 以上约束 FR-002、FR-003、FR-007：真实平台兼容性、生成合同唯一类型来源、最小依赖及技术决策边界。
 
+[AUTH:V1-TECHNICAL] API / Client Contract
+
+约束 AC-03、AC-04：运营端与小程序端消费同一份 generated contract；运营端 openapi-fetch generated client 与小程序端薄类型适配层均不得与服务端 contract 漂移。
+
+Authority 修订记录（2026-11-26）：Owner 已批准技术执行变更——小程序端由 openapi-fetch 运行方案改为 `wx.request` + thin typed transport adapter，运营端保留 openapi-fetch；generated TypeScript types 仍是唯一 Contract Type Authority，§18.4 Chunked Streaming Contract 不变。上游 `Docs/V1技术设计.md` 已按正式 Authority Change 流程修订 §27A 与 API / Client Contract 验收条款（本仓同步 PR）。原 openapi-fetch 小程序运行方案的 DevTools 打包/加载失败证据（Developer head `8c72fcf231148623c1e6e027989f32692181413b`：`tests/evidence/fe-001/runtime-compatibility.json`、`transport-decision.json`）保留为不可改写的历史证据；Owner 批准不等于真机验收。FR-002、FR-003、FR-007 与 AC-04、AC-08 的对应改写属于随后的 targeted planning amendment PR；在其合入前，本 Spec 不作为 Developer 执行依据，且不改变任何真机、联调或证据义务。
+
 [AUTH:FE-ENGINEERING] 请求、可靠性与隐私
 
 约束 FR-004、FR-005、FR-006：请求所有权、有界生命周期、脱敏、真实响应及中断处理。本 Slice 仅承担工程范围，不提前实现 actor/session 业务。

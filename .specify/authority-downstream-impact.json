@@ -1,0 +1,21 @@
+{
+  "repository": "pyxm1618/xiaoshuyin-frontend",
+  "base": "31cb32f02e8492942241b0b1aa2e00088bf978fa",
+  "authority": [
+    [
+      "Docs/V1技术设计.md",
+      "afef9fcc4af41b6137e5020717135972a3d515fc",
+      "decc923ad106b31c956cd767f667cbea1a262e0a"
+    ]
+  ],
+  "specs": {
+    "specs/001-fe-wechat-runtime-transport/spec.md": {
+      "rationale": "FE-001 是唯一引用 V1-TECHNICAL 的已登记前端 Spec。上游 Docs/V1技术设计.md 的修订只影响两端客户端绑定与最终合同验收：运营端保留 openapi-fetch，小程序端改为 wx.request 薄类型适配层，生成类型仍是唯一合同类型来源。本 PR 在 Spec 中登记 Authority 修订记录与新的 API / Client Contract 追溯，并把 FR-002/003/007、AC-04/08 的实质改写显式留给独立的 targeted planning amendment PR；因此本 PR 不产生可执行的 Developer 依据，也不改变任何真机/联调/证据义务。",
+      "evidence": "Actual base 31cb32f02e8492942241b0b1aa2e00088bf978fa；上游候选 ef477bbb8be846276e544e154a597466f5c68d70（后端 PR #155 拓扑 + PR #156 Authority），Docs/V1技术设计.md blob afef9fcc4af41b6137e5020717135972a3d515fc -> decc923ad106b31c956cd767f667cbea1a262e0a；只有 AUTH-V1T-135 与 AUTH-V1T-211 变化，§18.4、技术栈表、§4.1 依赖锁与总体技术架构未变；后端业务、OpenAPI 合同与生成工件未变；FE-001 的 openapi-fetch BLOCKED 证据保持原样且未被改写；无运行时、真机或 CI 通过声明。",
+      "changedArtifacts": [
+        "specs/001-fe-wechat-runtime-transport/spec.md"
+      ],
+      "disposition": "converged"
+    }
+  }
+}

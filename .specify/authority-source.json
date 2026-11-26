@@ -1,6 +1,6 @@
 {
   "sourceRepository": "pyxm1618/xiaoshuyin",
-  "sourceCommit": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
+  "sourceCommit": "ef477bbb8be846276e544e154a597466f5c68d70",
   "files": [
     {
       "sourcePath": "Docs/V1产品需求.md",
@@ -11,9 +11,9 @@
     },
     {
       "sourcePath": "Docs/V1技术设计.md",
-      "sourceBlob": "afef9fcc4af41b6137e5020717135972a3d515fc",
+      "sourceBlob": "decc923ad106b31c956cd767f667cbea1a262e0a",
       "destinationPath": "Docs/V1技术设计.md",
-      "sha256": "5b5ceb3ca6bafaca2c9c0a3e6706a1a7d70a349dbc2648857c7e150b26fd0cc9",
+      "sha256": "f0432ee10d41f30ebbb5a13f1e2ed4ccf2a8c634b77054533934c00c15c16d52",
       "classification": "upstream-authority"
     },
     {
