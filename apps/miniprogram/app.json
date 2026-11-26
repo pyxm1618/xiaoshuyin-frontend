@@ -1,5 +1,5 @@
 {
-  "pages": ["pages/bootstrap/index"],
+  "pages": ["pages/bootstrap/index", "probes/runtime/index"],
   "window": {
     "navigationBarTitleText": "小树荫助手"
   }

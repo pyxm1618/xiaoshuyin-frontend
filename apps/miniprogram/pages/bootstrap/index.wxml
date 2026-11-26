@@ -1,2 +1,3 @@
 <view class="bootstrap">{{entry}}</view>
 <view class="bootstrap-sdk">{{sdkVersion}}</view>
+<button class="bootstrap-probe" bindtap="onOpenProbe">runtime probe</button>

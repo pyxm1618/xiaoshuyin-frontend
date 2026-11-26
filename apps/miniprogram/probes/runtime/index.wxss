@@ -1,0 +1,35 @@
+.probe {
+  padding: 24rpx;
+  font-size: 26rpx;
+}
+
+.probe-title {
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.probe-input {
+  border: 1rpx solid #999;
+  border-radius: 8rpx;
+  padding: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.probe-run {
+  margin-bottom: 20rpx;
+}
+
+.probe-line {
+  display: flex;
+  flex-direction: column;
+  border-top: 1rpx solid #ddd;
+  padding: 8rpx 0;
+}
+
+.probe-label {
+  color: #666;
+}
+
+.probe-value {
+  word-break: break-all;
+}

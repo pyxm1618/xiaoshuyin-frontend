@@ -8,4 +8,8 @@ Page({
     const info = wx.getAppBaseInfo();
     this.setData({ sdkVersion: `SDK ${info.SDKVersion}` });
   },
+
+  onOpenProbe(): void {
+    wx.navigateTo({ url: '/probes/runtime/index' });
+  },
 });
