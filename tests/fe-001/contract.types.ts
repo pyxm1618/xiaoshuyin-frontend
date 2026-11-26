@@ -33,6 +33,8 @@ async function negativeContract(): Promise<void> {
   await client.POST('/api/v1/me');
   // @ts-expect-error GET /api/v1/me declares no request body
   await client.GET('/api/v1/me', { body: { any: 'thing' } });
+  // @ts-expect-error getMe declares no query parameters
+  await client.GET('/api/v1/me', { params: { query: { unexpected: 'x' } } });
   // @ts-expect-error MeResponse has no top-level displayName field
   acceptString(await client.GET('/api/v1/me').then(({ data }) => data?.displayName));
 }

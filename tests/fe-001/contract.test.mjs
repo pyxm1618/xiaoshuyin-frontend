@@ -14,18 +14,18 @@ afterAll(() => {
   for (const file of tempFiles) rmSync(file, { force: true });
 });
 
-function compilerOptions() {
+function compilerOptions(overrides = {}) {
   const config = ts.readConfigFile(join(root, 'tsconfig.json'), ts.sys.readFile);
   if (config.error) throw new Error(ts.flattenDiagnosticMessageText(config.error.messageText, '\n'));
   const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, root);
   if (parsed.errors.length) {
     throw new Error(parsed.errors.map((d) => ts.flattenDiagnosticMessageText(d.messageText, '\n')).join('\n'));
   }
-  return parsed.options;
+  return { ...parsed.options, ...overrides };
 }
 
-function diagnosticsFor(rootNames) {
-  const program = ts.createProgram({ rootNames, options: compilerOptions() });
+function diagnosticsFor(rootNames, overrides = {}) {
+  const program = ts.createProgram({ rootNames, options: compilerOptions(overrides) });
   return ts.getPreEmitDiagnostics(program);
 }
 
@@ -53,10 +53,20 @@ describe('frozen dependencies', () => {
 });
 
 describe('typed client contract', () => {
-  test('fixture compiles under the frozen strict tsconfig', () => {
+  test('fixture compiles under the frozen strict tsconfig with full declaration checking', () => {
     expect(existsSync(fixture)).toBe(true);
-    const diagnostics = diagnosticsFor([fixture]);
+    const diagnostics = diagnosticsFor([fixture], { skipLibCheck: false });
     expect(formatDiagnostics(diagnostics)).toBe('');
+  });
+
+  test('the root tsconfig keeps the frozen strict flags', () => {
+    const options = compilerOptions();
+    expect(options.strict).toBe(true);
+    expect(options.exactOptionalPropertyTypes).toBe(true);
+    expect(options.noUncheckedIndexedAccess).toBe(true);
+    expect(options.noEmit).toBe(true);
+    expect(options.types).toEqual([]);
+    expect(options.lib).toEqual(['lib.es2020.d.ts', 'lib.dom.d.ts']);
   });
 
   test('every @ts-expect-error directive is meaningful', () => {
@@ -65,14 +75,14 @@ describe('typed client contract', () => {
     const directiveLines = lines
       .map((line, index) => ({ line, index }))
       .filter(({ line }) => line.trim().startsWith('// @ts-expect-error'));
-    expect(directiveLines.length).toBe(4);
+    expect(directiveLines.length).toBe(5);
     const variants = directiveLines.map(({ index }) => {
       const file = join(here, `contract.negative-${index}.types.ts`);
       tempFiles.push(file);
       writeFileSync(file, lines.filter((_, i) => i !== index).join('\n'));
       return { file, line: index + 1 };
     });
-    const diagnostics = diagnosticsFor(variants.map(({ file }) => file));
+    const diagnostics = diagnosticsFor(variants.map(({ file }) => file), { skipLibCheck: false });
     for (const { file, line } of variants) {
       const own = diagnostics.filter((diagnostic) => diagnostic.file?.fileName === file);
       expect(own.length, `directive at line ${line} must suppress a real error`).toBeGreaterThan(0);
