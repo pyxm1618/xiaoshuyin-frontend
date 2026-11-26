@@ -10,7 +10,7 @@
     "contract:preview": "node scripts/upstream.mjs preview",
     "governance:check": "node scripts/governance.mjs",
     "typecheck": "node ./node_modules/typescript/bin/tsc --project tsconfig.json --noEmit",
-    "test": "node --test 'tests/**/*.test.mjs'",
+    "test": "node --test tests/bootstrap.test.mjs",
     "verify-all": "node scripts/verify-all.mjs"
   },
   "devDependencies": {"typescript": "5.9.3"}

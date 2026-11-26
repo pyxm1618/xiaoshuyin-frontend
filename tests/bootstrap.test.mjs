@@ -20,6 +20,7 @@ import {
 } from '../scripts/check-ruleset.mjs';
 import { engineeringApproval, planDigest, planningFiles } from '../scripts/governance-policy.mjs';
 import { REPOSITORY, validateGovernance } from '../scripts/governance.mjs';
+import { verifyApplicationTests } from '../scripts/verify-all.mjs';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const feature = '001-fe-fixture';
@@ -912,4 +913,52 @@ test('hardening a declared contract gap blocks implementation even with authoriz
   const base = f.commit();
   f.delivery(true, base); f.commit();
   await assert.rejects(f.validate({base}), /Contract gap blocks implementation/);
+});
+
+// Synthetic guard fixtures only: actual Vitest runs begin with admitted application dependencies.
+test('application verification is not applicable only on the empty bootstrap', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'fe-app-guard-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'tests/evidence/fe-001'), { recursive: true });
+  writeFileSync(join(root, 'tests/bootstrap.test.mjs'), '');
+  writeFileSync(join(root, 'tests/evidence/fe-001/engineering.json'), '{}');
+  assert.equal(verifyApplicationTests(root, () => assert.fail('unexpected application command')), false);
+  writeFileSync(join(root, 'project.config.json'), '{}');
+  assert.throws(() => verifyApplicationTests(root), /Applicable application tests missing/);
+});
+
+test('application or fixture candidate fails closed until a real test command and exact dependency exist', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'fe-app-guard-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'apps/miniprogram'), { recursive: true });
+  writeFileSync(join(root, 'apps/miniprogram/app.ts'), 'export {};');
+  assert.throws(() => verifyApplicationTests(root), /Applicable application tests missing/);
+  rmSync(join(root, 'apps'), { recursive: true });
+  mkdirSync(join(root, 'tests/fe-001'), { recursive: true });
+  writeFileSync(join(root, 'tests/fe-001/contract.types.ts'), 'export {};');
+  assert.throws(() => verifyApplicationTests(root), /Applicable application tests missing/);
+  writeFileSync(join(root, 'tests/fe-001/contract.test.mjs'), '// synthetic guard fixture, not a real application test');
+  const manifest = (scripts, vitest = '3.2.7') => writeFileSync(join(root, 'package.json'),
+    JSON.stringify({ scripts, devDependencies: { vitest } }));
+  manifest({});
+  assert.throws(() => verifyApplicationTests(root), /Required test:app command/);
+  manifest({ 'test:app': 'vitest run tests/fe-001 --passWithNoTests' });
+  assert.throws(() => verifyApplicationTests(root), /Required test:app command/);
+  const command = { 'test:app': 'vitest run tests/fe-001' };
+  manifest(command);
+  assert.throws(() => verifyApplicationTests(root), /Required exact installed Vitest/);
+  mkdirSync(join(root, 'node_modules/vitest'), { recursive: true });
+  const installed = (version) => writeFileSync(join(root, 'node_modules/vitest/package.json'), JSON.stringify({version}));
+  installed('3.2.6');
+  assert.throws(() => verifyApplicationTests(root), /Required exact installed Vitest/);
+  installed('3.2.7');
+  manifest(command, '^3.2.7');
+  assert.throws(() => verifyApplicationTests(root), /Required exact installed Vitest/);
+  manifest(command);
+  const calls = [];
+  assert.equal(verifyApplicationTests(root, (...args) => calls.push(args)), true);
+  assert.deepEqual(calls, [['test:app', root]]);
+  assert.throws(() => verifyApplicationTests(root, () => { throw new Error('test:app failed'); }), /test:app failed/);
+  writeFileSync(join(root, 'tests/other.test.mjs'), '');
+  assert.throws(() => verifyApplicationTests(root), /outside FE-001/);
 });
