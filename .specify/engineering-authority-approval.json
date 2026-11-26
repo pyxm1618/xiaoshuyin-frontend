@@ -1,18 +1,18 @@
 {
   "repository": "pyxm1618/xiaoshuyin-frontend",
-  "decision": "APPROVED — Owner-authorized Frontend Engineering Foundation final bounded closeout. Apply only the exact status-only changes recorded by the before/after SHA-256 values below; no architecture, product, contract, Spec Kit, or formal frontend implementation expansion is authorized.",
+  "decision": "Owner-authorized FINAL TARGETED HARDENING F-01–F-12 in this task (2026-11-26): proposed exact-content engineering Authority approval. This approval-only PR requires independent review and Owner merge before its dependent document application may land. No business development, FE-001, Step 4 content or upstream Authority override is authorized.",
   "files": {
     "Docs/frontend/engineering/V1前端工程技术设计.md": {
-      "before": "4f73adf29869759d682a9d48e4a540502426f6a10116a1491c70fffda76ea366",
-      "after": "d72a8068edf810e4127bdbbd16c8875a3e5968ffc10f5d09e957eb9be6502b8b"
+      "before": "d72a8068edf810e4127bdbbd16c8875a3e5968ffc10f5d09e957eb9be6502b8b",
+      "after": "20cc271b0ffda507aee01d2c0484f151478725d1eb33d5b9d108879fd94adb04"
     },
     "Docs/frontend/engineering/V1前端开发与验收规范.md": {
-      "before": "3467f41cf752b00da48c2c66d4d826c0d84a505772d9159477918ca0d0547fa1",
-      "after": "cb64a06909b6cba6bbafe9c1c0cc95aeeb3599e864577e80f6c2953a1a37b395"
+      "before": "cb64a06909b6cba6bbafe9c1c0cc95aeeb3599e864577e80f6c2953a1a37b395",
+      "after": "814a070fcef93c110245328a8ae7bf3e394a0f352b86bbeb96783ca357bec8e7"
     },
     "Docs/frontend/engineering/前后端合同与集成规范.md": {
-      "before": "56cfc487a5d2a6c3850e19f0af62320c71ad63a4cea81a51d5aaf75de873580c",
-      "after": "61ee7548fa37079029383f1e30c7432bf12304c4c2a93d75694d6a3184900890"
+      "before": "61ee7548fa37079029383f1e30c7432bf12304c4c2a93d75694d6a3184900890",
+      "after": "8b21da566808171b34e18cfa9c35933759de218a0189b2b3dfce6fb7d34687f8"
     }
   }
 }
