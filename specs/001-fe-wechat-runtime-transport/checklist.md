@@ -2,11 +2,11 @@
 
 ## Requirements Quality
 
-This is planning quality review, not implementation evidence. Frozen Spec unchanged; all runtime acceptance remains NOT VERIFIED.
+This is planning quality review, not implementation evidence. The Spec is amended by the Owner-approved targeted transport change (2026-11-26); all runtime acceptance remains NOT VERIFIED.
 - [x] CHK001 Scope unambiguous: FR-001–007; ENGINEERING / NONE / NOT APPLICABLE / Step 4 NONE; no user business behavior, session, persistence, authz or UI expansion.
 - [x] CHK002 Real native platform and existing AppID/name with EAD-01; no legacy migration or additional app.
-- [x] CHK003 Openapi-fetch mandatory pre-implementation runtime decision; incompatible => targeted request and STOP; alternative not approved.
-- [x] CHK004 Generated contract sole type source; method/path/params/response/errors and no duplicated DTO; actual getMe operation and auth route inspected.
+- [x] CHK003 Owner-approved `wx.request` thin typed transport adapter must pass the real target-device matrix (ordinary HTTP, params/headers, success, HTTP error, network failure, cancel/abort, response reading, runtime limits) before formal transport; any missing or incompatible item => STOP and governed escalation; Owner approval is not device acceptance; the original openapi-fetch BLOCKED evidence is retained unchanged.
+- [x] CHK004 Generated contract sole type source; method/path/params/body/response/errors and no duplicated DTO; actual getMe operation and auth route inspected.
 - [x] CHK005 Lifecycle includes timeout/network/HTTP/cancel/owner end/late response and unknown cannot become success; race and single-settlement tests specified.
 - [x] CHK006 Chunk probe isolated; multiple chunks before completion, bytes and interruption; AI stream/parser/recovery explicitly deferred.
 
@@ -25,9 +25,12 @@ This is planning quality review, not implementation evidence. Frozen Spec unchan
 - [x] CHK014 AC-03 real compiler positive/negative fixture with expected diagnostics, generated type-only consumption, typed test; AC-04 real platform ordinary HTTP.
 - [x] CHK015 AC-05 real 200 MeResponse and 401 UNAUTHENTICATED via formal transport, deployment SHA/contract/authorization/redaction.
 - [x] CHK016 AC-06 deterministic RED/GREEN plus platform lifecycle and stale response evidence; AC-07 separate real chunk timing, bytes, interruption, background/network behavior.
-- [x] CHK017 AC-08 evidence before transport; incompatible stops and no alternate; AC-09 applicable machine checks, device proof, binding, exact-head CI, separate Audit 2.
+- [x] CHK017 AC-08 evidence before transport; Owner approval already recorded but does not substitute for device acceptance; missing/incompatible matrix stops; AC-09 applicable machine checks, device proof, binding, exact-head CI, separate Audit 2.
 - [x] CHK018 Evidence contract includes all candidate paths, base, full design hashes, operations, actual media, defects/unverified, refresh on content changes. No PASS until actual evidence.
 - [x] CHK019 Engineering/contract/device applicable; formal experience/visual N/A not waiver of future quality, no Step 4 dependency. Tests first, then minimal bootstrap, real probe, only then transport, integration, chunk, final verification.
+- [x] CHK020 Openapi-fetch-era tests cannot masquerade as adapter tests: the type fixture and Vitest contract tests must exercise the thin adapter with the five real negatives under strict compile; the historical BLOCKED evidence stays byte-identical and T005/T006 use a separate adapter evidence pair.
+- [x] CHK021 DOM + skipLibCheck exception re-evaluated: local tsc 5.9.3 + miniprogram-api-typings 5.3.1 compiles with lib ES2020 (no DOM) and skipLibCheck:false, so the minimal convergence (remove DOM, restore full declaration checking in the separate tsconfig-only PR) is recorded; no automatic lowering or widening of type standards.
+- [x] CHK022 Authority/contract preservation: generated OpenAPI JSON/d.ts blobs unchanged, no second DTO/schema, §18.4 Chunked Streaming Contract untouched, backend business and OpenAPI contract unmodified, business semantics remain NONE.
 
 ## Audit 1 Disposition
 

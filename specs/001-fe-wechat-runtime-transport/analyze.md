@@ -11,12 +11,12 @@ Reviewed tracked Spec Kit 1.2.1 templates, constitution, specs/README, actual FE
 | FR | AC | Tasks | Verification |
 | --- | --- | --- | --- |
 | FR-001 | 01,02,09 | T003,T004,T013,T014 | Native build manual, physical device, exact CI |
-| FR-002 | 02,04,08,09 | T004,T005,T006,T013,T014 | Actual openapi-fetch probe and gate |
+| FR-002 | 02,04,08,09 | T004,T005,T006,T013,T014 | Actual approved thin-adapter real-device matrix and gate; original openapi-fetch BLOCKED evidence retained |
 | FR-003 | 03,04,09 | T001,T005,T007,T014 | Positive/negative real TS compiler and Vitest, generated contract |
 | FR-004 | 06,09 | T002,T008,T009,T014 | RED/GREEN lifecycle tests, actual device failure/late response |
 | FR-005 | 05,09 | T010,T014 | Real isolated GET me 200/401, schema and redacted deployment evidence |
 | FR-006 | 07,09 | T002,T011,T012,T014 | Isolated probe tests and actual early byte arrivals/interruption |
-| FR-007 | 03,08,09 | T001,T005,T006,T007,T014 | Runtime decision before client; STOP if incompatible |
+| FR-007 | 03,08,09 | T001,T005,T006,T007,T014 | Runtime decision before client; Owner approval without device acceptance; STOP if incompatible |
 
 7/7 FR, 9/9 AC planned; no orphan task: each actual REQ selector is present in frozen spec and maps to applicable requirements; VERIFY references match required test/device/manual syntax. T001–T014 unchecked. No test/real device results claimed. T001/T002 first define expected failing tests/procedures; bootstrap minimal to enable platform testing; T005 and T006 before T007, T008 lifecycle implementation follows RED; T009 actual platform, T010 actual backend, T011–T012 independent chunk, T013–T014 final refresh. No formal transport if compatibility unavailable. Type checks include negative examples; no global retry/session/DTO/framework or artificial success.
 
@@ -30,6 +30,7 @@ Reviewed tracked Spec Kit 1.2.1 templates, constitution, specs/README, actual FE
 | P-04 | Actual platform compatibility, existing AppID/access, test backend deployment/credentials and chunk source not verified. | Dependent Developer operations/acceptance gates, not planning blockers. Explicit STOP/no substitute. |
 | P-05 | GitHub-native planning, actual Spec Kit setup/prerequisite/workflow commands not executed. | Report difference, remote candidate read-back/CI and manual audit evidence only; Chief/Owner reviews formal path before admission. |
 | P-06 | Production stream/get contract absent. | DEFERRED for later dependent slice; isolated technical probe only, no backend redesign. |
+| P-07 | Developer target-device evidence at head 8c72fcf231148623c1e6e027989f32692181413b: DevTools cannot emit/load the openapi-fetch 0.17.0 entry (preview package 10,458 B against a 17,662 B library, blank device page); Request/Response/Headers/Fetch semantics remain unverified and no approach is proven impossible. Owner approved `wx.request` + thin typed adapter. | Upstream Authority amended (#155 topology, #156 Authority) and synced in a separate controlled PR; T005/T006 now verify the approved adapter on the real target with a separate evidence pair; original BLOCKED evidence retained byte-identical; openapi-fetch-era tests cannot masquerade; DOM+skipLibCheck exception re-evaluated with local tsc evidence for the separate tsconfig-only PR. |
 
 No identified requirement contradiction or scope expansion; findings above are concrete prerequisites/limitations, not falsely resolved runtime tests. No approved ownership, governance PR, actual execution or deployment implied. Current code baseline has no app implementation; no need to reopen Foundation or create business artifacts.
 
@@ -40,6 +41,14 @@ NONE is justified by actual scope, not ENGINEERING label. No new formal user wor
 ## Risk, scope and evidence audit
 
 Allowed paths minimal and classified implementation/shared by actual governance-policy.mjs; forbidden protects Authority/contract/other scope/CI/governance/production outputs. Separate admission changes not implementation authority. Only completion boxes and required binding/evidence metadata allowed as governance exception. Tests reference actual planned paths under owned tests/fe-001/; type fixture has explicit tsconfig-only precondition. Device/manual records bound to current implementation files and actual authority hashes, no circular self-reference, actual media required for device. No false PASS, all tasks uncompleted. Engineering/Contract/Real-device applicable; formal product Experience/Visual N/A. Audit 2 remains independent exact-head after implementation. No additional abstractions, TDesign, business state or FE-002.
+
+## Targeted transport amendment (2026-11-26)
+
+Owner approved Plan A: the mini program moves from the frozen `openapi-fetch` runtime to `wx.request` behind a thin typed transport adapter; `openapi-typescript` and the generated TypeScript types remain the sole client contract type source; the operations console keeps `openapi-fetch`; Plan B, vendored CJS, a generic Fetch polyfill and custom bundling are not adopted. The change is a technical execution decision only — no product requirement, backend business, OpenAPI contract, generated artifact or business semantics change, and §18.4 Chunked Streaming Contract is untouched.
+
+Cross-check performed for this amendment: the amended `Docs/V1技术设计.md` was read back at the actual backend candidate (blob `afef9fcc…` → `decc923a…`), the delta is confined to `AUTH-V1T-135` and `AUTH-V1T-211`, and the unchanged provisions (stack table, §4.1 dependency lock, `Docs/总体技术架构.md` §18/§19) remain truthful because `openapi-fetch` is still a real dependency for the operations console. The generated contract blobs `68d3b9e6…` / `84fc009c…` are unchanged. The developer's BLOCKED evidence is consistent with the Owner's framing: it records a DevTools packaging/loading failure and explicitly does not claim that all adaptation approaches are impossible.
+
+Amendment effects: FR-002/FR-003/FR-007 and AC-04/AC-08 are reworded to the approved client and its real-device matrix; T005/T006 keep their hard-gate position and now verify the approved adapter with a new evidence pair while the original openapi-fetch BLOCKED files stay byte-identical; T007 implements the thin adapter instead of an `openapi-fetch` client; the adapter needs its own five type negatives and strict compile, so openapi-fetch-era tests cannot substitute; the DOM + `skipLibCheck` exception is re-evaluated (local `tsc` 5.9.3 with `lib:["ES2020"]` and `skipLibCheck:false` compiles the current native app, platform declarations and generated types with exit 0), and its minimal convergence is deferred to the separate tsconfig-only governance PR. Unchanged: FR/AC numbering, scope and non-goals, request lifecycle, real 200/401 integration, §18.4 chunk probe, privacy/evidence contract, business semantics NONE, and the prohibition on formal Transport before real acceptance. Owner approval is not device acceptance; nothing here is a runtime, device, integration or CI PASS claim.
 
 ## Conclusion
 

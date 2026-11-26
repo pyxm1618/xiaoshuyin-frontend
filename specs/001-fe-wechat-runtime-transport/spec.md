@@ -25,7 +25,7 @@
 
 约束 AC-03、AC-04：运营端与小程序端消费同一份 generated contract；运营端 openapi-fetch generated client 与小程序端薄类型适配层均不得与服务端 contract 漂移。
 
-Authority 修订记录（2026-11-26）：Owner 已批准技术执行变更——小程序端由 openapi-fetch 运行方案改为 `wx.request` + thin typed transport adapter，运营端保留 openapi-fetch；generated TypeScript types 仍是唯一 Contract Type Authority，§18.4 Chunked Streaming Contract 不变。上游 `Docs/V1技术设计.md` 已按正式 Authority Change 流程修订 §27A 与 API / Client Contract 验收条款（本仓同步 PR）。原 openapi-fetch 小程序运行方案的 DevTools 打包/加载失败证据（Developer head `8c72fcf231148623c1e6e027989f32692181413b`：`tests/evidence/fe-001/runtime-compatibility.json`、`transport-decision.json`）保留为不可改写的历史证据；Owner 批准不等于真机验收。FR-002、FR-003、FR-007 与 AC-04、AC-08 的对应改写属于随后的 targeted planning amendment PR；在其合入前，本 Spec 不作为 Developer 执行依据，且不改变任何真机、联调或证据义务。
+Authority 修订记录（2026-11-26）：Owner 已批准技术执行变更——小程序端由 openapi-fetch 运行方案改为 `wx.request` + thin typed transport adapter，运营端保留 openapi-fetch；generated TypeScript types 仍是唯一 Contract Type Authority，§18.4 Chunked Streaming Contract 不变。上游 `Docs/V1技术设计.md` 已按正式 Authority Change 流程修订 §27A 与 API / Client Contract 验收条款（本仓同步 PR），本仓 FE-ENGINEERING 的 §27A 绑定条款按独立审批与应用流程收敛。原 openapi-fetch 小程序运行方案的 DevTools 打包/加载失败证据（Developer head `8c72fcf231148623c1e6e027989f32692181413b`：`tests/evidence/fe-001/runtime-compatibility.json`、`transport-decision.json`）保留为不可改写的历史证据；Owner 批准不等于真机验收。FR-002、FR-003、FR-007 与 AC-04、AC-08 已按修订后的 Authority 改写；本 Spec 自本 PR 合入后方可作为 Developer 执行依据，且不改变任何真机、联调或证据义务。
 
 [AUTH:FE-ENGINEERING] 请求、可靠性与隐私
 
@@ -85,11 +85,11 @@ Specify 基线：
 
 ### FR-002 — Runtime Compatibility Confirmation
 
-在目标真实微信 Runtime 验证冻结的 openapi-fetch 方案，覆盖适用 Request、Response、Fetch 行为、请求取消、响应读取与错误处理；记录实际平台、工具、客户端、基础库版本、覆盖范围及限制。普通 HTTP 与 chunked probe 分别取证，不以 Node/浏览器或模拟器代替目标真机。
+在目标真实微信 Runtime 验证已批准的小程序端方案（`wx.request` + thin typed transport adapter），至少覆盖：普通 HTTP 请求；请求参数与头部；成功响应；HTTP 错误响应；网络失败；取消/中止；响应读取；实际运行时限制。记录实际平台、工具、客户端、基础库版本、覆盖范围及限制。普通 HTTP 与 chunked probe 分别取证，不以 Node/浏览器或模拟器代替目标真机。原冻结 openapi-fetch 小程序方案的 DevTools 打包/加载失败证据保留为历史记录，不因方案变更而删除或改写；Owner 批准不能替代本项真机验收。
 
 ### FR-003 — Typed Transport Entry
 
-直接消费 packages/generated/openapi.d.ts 的生成类型，HTTP 语义依据同源 openapi.json，保持方法、路径、参数、响应及错误语义。禁止重复 DTO/schema、无约束类型断言掩盖不匹配及提前构建通用 Networking Framework。依 FR-007 决定正式实现。
+直接消费 packages/generated/openapi.d.ts 的生成类型（paths / operations / components），HTTP 语义依据同源 openapi.json，保持方法、路径、参数、body、响应及错误语义。正式实现只提供 FE-001 所需的最小 `wx.request` 薄类型适配层：不引入第二套 DTO/schema、通用 Networking Framework、全局重试、拦截器平台、通用 Fetch polyfill、Session 管理、登录或家庭业务、完整 AI Streaming / Recovery。禁止重复 DTO/schema、无约束类型断言掩盖不匹配。依 FR-007 决定正式实现。
 
 ### FR-004 — Request Lifecycle
 
@@ -105,7 +105,7 @@ Specify 基线：
 
 ### FR-007 — Transport Decision Boundary
 
-openapi-fetch 是当前技术 Authority。先取得 FR-002 的真实兼容性证据，兼容且保持合同语义方可继续正式 Transport 实现；不能满足则 STOP 正式 Transport 实现，提交真实证据及 targeted technical authority change request，等待正式批准。wx.request + thin typed transport adapter 只是候选替代，未获批准不得当作正式实现。任何批准方案仍以 generated OpenAPI types 为唯一 Contract Type Authority。不因普通 HTTP 验证通过而宣称 AI 流式交付就绪。
+小程序端方案已由 Owner 于 2026-11-26 批准为 `wx.request` + thin typed transport adapter；运营端保留 openapi-fetch。generated OpenAPI types 仍是唯一 Contract Type Authority。本批准只改变技术执行方案，不改变产品需求、后端业务、API Contract 或业务语义，也不改变 §18.4 Chunked Streaming Contract。原 openapi-fetch 小程序运行方案的真实 BLOCKED 证据与结论保持有效并作为历史记录保留，不得以“方案已批准”改写成兼容。Owner 批准不能替代真机验收：FR-002 真机矩阵未实际通过前不得开始 T007 正式 Transport 实现；矩阵任一项缺失或无法保持合同/流式语义时，STOP 并提交真实证据与受审变更请求，不得自行替换方案、mock 或降低标准。不因普通 HTTP 验证通过而宣称 AI 流式交付就绪。
 
 ### Engineering dependencies and phase boundary
 
@@ -136,7 +136,7 @@ openapi-fetch 是当前技术 Authority。先取得 FR-002 的真实兼容性证
 
 ### AC-04 — HTTP Compatibility (FR-002, FR-003)
 
-在目标微信 Runtime 实测冻结 openapi-fetch 方案的适用 Request/Response/Fetch、请求取消、响应读取及错误行为；记录真实平台限制。若不兼容，按 AC-08 停止正式实现，不宣称通过。
+在目标微信 Runtime 实测已批准的 `wx.request` 薄类型适配层：普通 HTTP 请求、请求参数与头部、成功响应、HTTP 错误、网络失败、取消/中止、响应读取及实际运行时限制；记录真实平台限制。原 openapi-fetch 方案的 BLOCKED 证据保持原样。若任一项未通过或无法保持合同语义，按 AC-08 停止正式实现，不宣称通过。
 
 ### AC-05 — Backend Integration (FR-005)
 
@@ -152,7 +152,7 @@ openapi-fetch 是当前技术 Authority。先取得 FR-002 的真实兼容性证
 
 ### AC-08 — Authority Decision (FR-002, FR-007)
 
-以真实证据支持 Transport 兼容性决定；不兼容时 STOP 正式 Transport 实现，按 Authority 变更流程提交 targeted request，未批准不得替换方案或将阻断报告视为实现完成。
+Authority 变更已由 Owner 于 2026-11-26 批准并完成正式流程：小程序端使用 `wx.request` + thin typed transport adapter，运营端保留 openapi-fetch。批准不构成真机验收；T005/T006 真实矩阵未通过前不得进入 T007。真实证据显示无法保持合同/流式语义时，STOP 并升级受审变更，未批准不得替换方案或将阻断报告视为实现完成。
 
 ### AC-09 — Engineering Verification (FR-001–FR-007)
 
@@ -164,4 +164,4 @@ openapi-fetch 是当前技术 Authority。先取得 FR-002 的真实兼容性证
 
 后续 Developer 依 specs/README.md 与 FE-DELIVERY 的正式证据规则提交适用 manual/device 记录于 tests/evidence/：type、result、reference、准确 base、candidateFiles（Change Binding 中排除 tests/evidence/ 的全部路径与 SHA-256）、design（真实 unit、selector、完整文件 SHA-256）、observedAt、environment、operations（action/expected/actual）、artifacts（真实路径与 SHA-256）、defects、unverified。device 至少一份当前候选真实适用媒体；manual 按实际适用性留证，不强造截图。证据仅使用隔离测试内容并脱敏。候选内容变化导致绑定失配时重新取证；未验证或有阻断缺陷不能标记 PASS。独立 Audit 2 绑定实际 Exact Head 并读取真实媒体、环境、操作及结果；CI 只证明适用机器检查，不代替独立判断。
 
-Specify / Clarify：FR-001–FR-007、AC-01–AC-09 实质保持；当前需求无未决澄清，实际设备与部署结果由 Developer 验收，openapi-fetch 不兼容依 FR-007 停止并提交变更请求。此 Spec-only 候选采用 Owner 本轮授权的 GitHub-native 创建方式，遵循仓库 Spec Kit 1.2.1 模板与 sequential 命名规则；未执行 CLI，不冒充 CLI 生成结果。正式路径执行差异由 Owner 按既有治理裁决。Planning Admission 尚未完成，Developer Execution 尚未开始。
+Specify / Clarify：FR-001–FR-007、AC-01–AC-09 实质保持；当前需求无未决澄清，实际设备与部署结果由 Developer 验收。原 openapi-fetch 小程序方案的真实 BLOCKED 证据按原样保留；Owner 已批准 `wx.request` 薄适配层的技术执行变更并完成上游与本仓 Authority 流程，但 FR-002 真机矩阵仍是 T007 前置硬门禁。此 Spec-only 候选采用 Owner 本轮授权的 GitHub-native 创建方式，遵循仓库 Spec Kit 1.2.1 模板与 sequential 命名规则；未执行 CLI，不冒充 CLI 生成结果。正式路径执行差异由 Owner 按既有治理裁决。Planning Admission 尚未完成，Developer Execution 尚未开始。

@@ -1,19 +1,23 @@
 {
   "repository": "pyxm1618/xiaoshuyin-frontend",
-  "base": "31cb32f02e8492942241b0b1aa2e00088bf978fa",
+  "base": "854d6f05544aa2ce6c5960dbbfbc6308d4087268",
   "authority": [
     [
-      "Docs/V1技术设计.md",
-      "afef9fcc4af41b6137e5020717135972a3d515fc",
-      "decc923ad106b31c956cd767f667cbea1a262e0a"
+      "Docs/frontend/engineering/V1前端工程技术设计.md",
+      "8001da926e3d48cdbb1da57b0473efdaee3ce97c",
+      "a9f585c18e27e6e83d644081cbfe3057b6053215"
     ]
   ],
   "specs": {
     "specs/001-fe-wechat-runtime-transport/spec.md": {
-      "rationale": "FE-001 是唯一引用 V1-TECHNICAL 的已登记前端 Spec。上游 Docs/V1技术设计.md 的修订只影响两端客户端绑定与最终合同验收：运营端保留 openapi-fetch，小程序端改为 wx.request 薄类型适配层，生成类型仍是唯一合同类型来源。本 PR 在 Spec 中登记 Authority 修订记录与新的 API / Client Contract 追溯，并把 FR-002/003/007、AC-04/08 的实质改写显式留给独立的 targeted planning amendment PR；因此本 PR 不产生可执行的 Developer 依据，也不改变任何真机/联调/证据义务。",
-      "evidence": "Actual base 31cb32f02e8492942241b0b1aa2e00088bf978fa；上游候选 ef477bbb8be846276e544e154a597466f5c68d70（后端 PR #155 拓扑 + PR #156 Authority），Docs/V1技术设计.md blob afef9fcc4af41b6137e5020717135972a3d515fc -> decc923ad106b31c956cd767f667cbea1a262e0a；只有 AUTH-V1T-135 与 AUTH-V1T-211 变化，§18.4、技术栈表、§4.1 依赖锁与总体技术架构未变；后端业务、OpenAPI 合同与生成工件未变；FE-001 的 openapi-fetch BLOCKED 证据保持原样且未被改写；无运行时、真机或 CI 通过声明。",
+      "rationale": "FE-001 是唯一引用 FE-ENGINEERING 的已登记前端 Spec，也是本 Slice 的全部规划。本 PR 按 Owner 2026-11-26 的决定把规划收敛到已批准的 wx.request + thin typed adapter：FR-002/FR-003/FR-007 与 AC-04/AC-08 改写为同一真机矩阵与硬门禁；T005/T006 保持硬门禁位置并改用独立的适配层证据对，T007 改为薄适配层；type fixture 与 Vitest 合同测试必须覆盖适配层且不能复用 openapi-fetch 测试；DOM+skipLibCheck 例外给出最小收敛方案并留给独立 tsconfig-only 治理 PR。FR/AC 编号、Scope、Non-goals、请求生命周期、真实 200/401、§18.4 chunk probe、隐私与证据契约、Business Semantics NONE 均不变；T003/T004 的已完成行逐字保留。",
+      "evidence": "Actual base 854d6f05544aa2ce6c5960dbbfbc6308d4087268（frontend main 31cb32f02e8492942241b0b1aa2e00088bf978fa + 受控 Authority 同步 + 审批 PR）。读回 HEAD 的五份规划工件与 Documents：Docs/V1技术设计.md blob decc923ad106b31c956cd767f667cbea1a262e0a（仅 AUTH-V1T-135/AUTH-V1T-211 变化，§18.4 不变），FE-ENGINEERING §27A 绑定条款 blob 8001da926e3d48cdbb1da57b0473efdaee3ce97c -> a9f585c18e27e6e83d644081cbfe3057b6053215，生成合同 blob 68d3b9e6…/84fc009c… 未变，原 runtime-compatibility.json/transport-decision.json 的 BLOCKED 证据未改写。本地 tsc 5.9.3 + miniprogram-api-typings 5.3.1 在 lib ES2020、skipLibCheck:false、types:[] 与全部 strict 选项下编译当前原生应用/平台声明/生成类型，exit 0，仅作为 tsconfig 收敛的规划证据。未执行实现、真机、联调、chunk 或 exact-head CI；T005–T014 仍未验证，无 Audit 2；Owner 批准不等于任何验收通过。",
       "changedArtifacts": [
-        "specs/001-fe-wechat-runtime-transport/spec.md"
+        "specs/001-fe-wechat-runtime-transport/spec.md",
+        "specs/001-fe-wechat-runtime-transport/plan.md",
+        "specs/001-fe-wechat-runtime-transport/checklist.md",
+        "specs/001-fe-wechat-runtime-transport/tasks.md",
+        "specs/001-fe-wechat-runtime-transport/analyze.md"
       ],
       "disposition": "converged"
     }
