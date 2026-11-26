@@ -1,19 +1,19 @@
 {
   "sourceRepository": "pyxm1618/xiaoshuyin",
-  "sourceCommit": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
+  "sourceCommit": "9a1589a88729be46eadf81279d8a1eb7628cf29b",
   "files": [
     {
-      "sourcePath": "packages/generated/openapi.d.ts",
-      "sourceBlob": "9bdb77f6adb3dc402451f41b3e8bf1fbfa9c3f72",
-      "destinationPath": "packages/generated/openapi.d.ts",
-      "sha256": "8a25157ee84130365ae89c05d83d3dd727853501557ded371ebcb5d1a8380a74",
+      "sourcePath": "packages/generated/openapi.json",
+      "sourceBlob": "68d3b9e620a9fc291d21b3b830ba426a3bc13101",
+      "destinationPath": "packages/generated/openapi.json",
+      "sha256": "9ce501df305fd767b37d6831d09ef94ebc60eac435b18f820958c868c96e6903",
       "classification": "api-contract"
     },
     {
-      "sourcePath": "packages/generated/openapi.json",
-      "sourceBlob": "0267f85d31c99fe5dc0aaca1a618266c532cd14c",
-      "destinationPath": "packages/generated/openapi.json",
-      "sha256": "7082cfe5b6e6d322a095b3e219a6a4dc423e5d261d30d1eb6f0744072f1738b4",
+      "sourcePath": "packages/generated/openapi.d.ts",
+      "sourceBlob": "84fc009cbf7beaca193987d3e6b33ebda1148bc7",
+      "destinationPath": "packages/generated/openapi.d.ts",
+      "sha256": "ddfac7b93787c1ec9a4ba370ee8c699a1230cb0f74f3fd17aee1b4e37690630d",
       "classification": "api-contract"
     }
   ],
