@@ -8,7 +8,8 @@
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
-    "types": []
+    "types": [],
+    "skipLibCheck": true
   },
   "include": ["packages/generated/openapi.d.ts", "apps/miniprogram/**/*.ts", "tests/fe-001/contract.types.ts"]
 }
