@@ -1,0 +1,15 @@
+{
+  "repository": "pyxm1618/xiaoshuyin-frontend",
+  "snapshots": {
+    "contract": {
+      "previous": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
+      "next": "9a1589a88729be46eadf81279d8a1eb7628cf29b",
+      "files": [
+        "packages/generated/openapi.json",
+        "packages/generated/openapi.d.ts"
+      ],
+      "rationale": "Reviewed full generated OpenAPI and TypeScript diff at upstream main 9a1589a88729be46eadf81279d8a1eb7628cf29b. PhoneUseContractDto now requires reviewState CURRENT|NEEDS_REVIEW and permits nullable childParticipationId; SavePhoneUseContractDraftRequest no longer requires childParticipationId. New POST /api/v1/cases/{id}/digital-use/contract/{version}/review requires bearer authentication, Idempotency-Key, exact case/draft/update versions and NO_MATERIAL_CHANGE outcome; returns PhoneUseContractDto or documented 401/403/404/409/422/500 errors. No operations removed; no other request/response/schema/media/stream changes. Downstream convergence: no application code, no registered FE business Specs, no handwritten DTO or mock API exists; generated artifacts remain the only client contract. Nullable/optional/reviewState handling and review invocation remain future scoped Slice obligations. All paths remain CONTRACT-LISTED only; test environment, platform compatibility and APPROVED-FOR-TARGET remain unverified. AI run streaming contracts are still absent and BLOCKED. Source does not prove deployment/production readiness. Revert via reviewed Git PR if necessary; no data migration or parallel client exists.",
+      "changedSpecArtifacts": []
+    }
+  }
+}
