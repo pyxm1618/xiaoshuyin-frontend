@@ -1,0 +1,9 @@
+{
+  "description": "FE-001 engineering bootstrap",
+  "miniprogramRoot": "apps/miniprogram/",
+  "compileType": "miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "useCompilerPlugins": ["typescript"]
+  }
+}

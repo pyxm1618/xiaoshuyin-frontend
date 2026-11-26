@@ -1,0 +1,6 @@
+{
+  "pages": ["pages/bootstrap/index"],
+  "window": {
+    "navigationBarTitleText": "小树荫助手"
+  }
+}
