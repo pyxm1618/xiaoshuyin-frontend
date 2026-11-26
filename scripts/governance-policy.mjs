@@ -30,6 +30,14 @@ export function validateAuditAdmission(root, feature, readBase, expectedImpact) 
   if (expectedImpact && record.authorityImpact !== expectedImpact) {
     throw new Error(`Audit 1 must be renewed for the Authority change: ${feature}`);
   }
+  const spec = readBase(prefix + 'spec.md');
+  const semantics = spec.match(/^\*\*Business Semantics\*\*: (NONE|CHANGED)$/m)?.[1];
+  const assessment = record.semanticAssessment;
+  if (!assessment || assessment.businessSemantics !== semantics ||
+      typeof assessment.rationale !== 'string' || !assessment.rationale.trim() ||
+      typeof assessment.evidence !== 'string' || !assessment.evidence.trim()) {
+    throw new Error(`Audit 1 semantic assessment missing or inconsistent: ${feature}`);
+  }
   for (const name of planningFiles) {
     const committed = readBase(prefix + name);
     const current = readFileSync(join(root, prefix, name), 'utf8');

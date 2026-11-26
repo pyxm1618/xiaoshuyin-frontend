@@ -11,6 +11,8 @@ import {
   githubGet as upstreamGithubGet,
   githubHeaders as upstreamGithubHeaders,
   verifySnapshot,
+  verifyFreshness,
+  isAdditionalAuthority,
 } from '../scripts/upstream.mjs';
 import {
   githubGet as rulesetGithubGet,
@@ -43,6 +45,7 @@ function fixture(t, {
   businessSelector = 'V1-C36',
   businessAuthorityUnit = 'V1-TECHNICAL',
   productAuthoritySelectors = ['U01'],
+  semantics = sliceKind === 'BUSINESS' ? 'CHANGED' : 'NONE',
   verificationType = 'test',
   verificationPath = verificationType === 'test' ? testPath : `tests/evidence/${verificationType}.json`,
 } = {}) {
@@ -74,7 +77,7 @@ function fixture(t, {
   ];
   for (const {path} of authorityUnits) {
     mkdirSync(join(root, path, '..'), {recursive: true});
-    const text = path === technicalAuthority ? '| V1-C36 | 现有微信小程序为家庭主端，不另建家庭 Web |'
+    const text = path === technicalAuthority ? '| V1-C36 | 现有微信小程序为家庭主端，不另建家庭 Web |\n### Phase 1：Common Core 地基'
       : path === productAuthority ? productAuthoritySelectors.map((selector) =>
         `${selector} synthetic canonical product selector`).join('\n')
       : path === engineeringAuthority ? '## 请求、可靠性与隐私\n空态要有服务端证据。' : '# Synthetic Authority';
@@ -106,9 +109,17 @@ function fixture(t, {
   const activeTaskLine = `T001 Exercised declaration [REQ:${requirement}] [VERIFY:${verificationType}:${verificationPath}]`;
   const spec = `**Slice**: FE-001
 **Kind**: ${sliceKind}
+**Business Semantics**: ${semantics}
+${semantics === 'NONE' ? '**Phase**: NOT APPLICABLE' : ''}
 
 ## Upstream Traceability
-${upstream}[AUTH:FE-ENGINEERING] 请求、可靠性与隐私
+${upstream}${semantics === 'CHANGED' && canonicalBusinessRef ? '[AUTH:V1-PRODUCT] U01\n[AUTH:V1-TECHNICAL] Phase 1：Common Core 地基\n' : ''}[AUTH:FE-ENGINEERING] 请求、可靠性与隐私
+
+## Business Semantics Assessment
+Synthetic ${semantics} assessment: governance fixture only; no production claim.
+
+## Backend and Contract Dependencies
+[CONTRACT] GET /fixture
 
 ## Scope
 Fixture
@@ -134,6 +145,7 @@ Test
 ## Scope Contract
 [ALLOW] apps/miniprogram/
 [ALLOW] ${verificationPath}
+[ALLOW] tests/evidence/capture.png
 [ALLOW] package.json
 
 ## Verification Plan
@@ -145,11 +157,12 @@ Test
   write(`${folder}/analyze.md`, '# Captured cross-artifact analysis\n');
   const analyzed = lifecycle ? commit() : undefined;
   if (audit) json(`${folder}/audit1.json`, { feature, role: 'Plan AI 2', decision: 'PASS', evidence: 'Synthetic audit fixture',
+    semanticAssessment: {businessSemantics: semantics, rationale: 'Synthetic reviewed scope', evidence: 'Synthetic Plan AI 2 review'},
     artifacts: Object.fromEntries(planningFiles.map((name) => [name, planDigest(name, read(`${folder}/${name}`).toString())])) });
   if (missingPlanArtifact) rmSync(join(root, folder, missingPlanArtifact));
   const audited = lifecycle ? commit() : undefined;
   json(ownership, { schemaVersion: 1, repository: REPOSITORY, owners: {
-    [applicationPath]: [feature], [verificationPath]: [feature], ...(shared && {'package.json': [feature]}) } });
+    [applicationPath]: [feature], [verificationPath]: [feature], ...(verificationType !== 'test' ? {'tests/evidence/capture.png': [feature]} : {}), ...(shared && {'package.json': [feature]}) } });
   const base = commit();
   const validate = (options = {}) => validateGovernance(root, { base, repository: REPOSITORY, ...options });
   const delivery = (lawful = true, deliveryBase = base) => {
@@ -163,11 +176,21 @@ Test
         type: verificationType,
         result: 'PASS',
         reference: `Synthetic ${verificationType} acceptance evidence`,
+        base: deliveryBase,
+        candidateFiles: {[code]: digest(read(code))},
+        design: [{unit: 'FE-ENGINEERING', selector: '请求、可靠性与隐私', sha256: digest(read(engineeringAuthority))}],
+        observedAt: '2026-11-26T00:00:00Z',
+        environment: 'Synthetic fixture only; never real acceptance',
+        operations: [{action: 'Synthetic operation', expected: 'Synthetic expectation', actual: 'Synthetic observation'}],
+        artifacts: [{path: 'tests/evidence/capture.png', sha256: digest(Buffer.from('Synthetic capture fixture; not real media'))}],
+        defects: [],
+        unverified: [],
       });
     }
+    if (verificationType !== 'test') write('tests/evidence/capture.png', 'Synthetic capture fixture; not real media');
     write(`${folder}/tasks.md`, read(`${folder}/tasks.md`).toString().replace(/^- \[ \] T001 /m, '- [x] T001 '));
     if (shared) json('package.json', {...JSON.parse(read('package.json')), description: 'Synthetic shared tooling edit'});
-    const paths = [code, verificationPath, ...(shared ? ['package.json'] : [])];
+    const paths = [code, verificationPath, ...(verificationType !== 'test' ? ['tests/evidence/capture.png'] : []), ...(shared ? ['package.json'] : [])];
     json(bindingPath, { repository: REPOSITORY, feature, kind: shared ? 'shared-engineering' : 'implementation',
       files: Object.fromEntries(paths.map((path) => [path, digest(read(path))])) });
     json(evidencePath, { repository: REPOSITORY, feature, base: deliveryBase, binding: digest(read(bindingPath)),
@@ -218,6 +241,7 @@ test('a BUSINESS Slice rejects unsupported 010xx letter suffixes even if the tex
     businessAuthorityUnit: 'V1-PRODUCT',
     productAuthoritySelectors: ['U01', '01002G'],
   });
+  f.write(`${folder}/spec.md`, f.spec.replace('[AUTH:V1-PRODUCT] U01\n', ''));
   await assert.rejects(f.validate(), /business Slice requires an upstream canonical product\/technical selector/);
 });
 
@@ -347,9 +371,9 @@ test('F01 engineering Authority edits require a prior exact-byte approval', asyn
 
 test('F02 Step 4 requires separate registry admission, source provenance, and intact existing imports', async (t) => {
   const f = fixture(t);
-  const path = 'Docs/frontend/step-4/fixture.md';
+  const path = 'Docs/frontend/design-system/fixture.md';
   const bytes = Buffer.from('# Frozen synthetic source\n');
-  mkdirSync(join(f.root, 'Docs/frontend/step-4'));
+  mkdirSync(join(f.root, 'Docs/frontend/design-system'));
   f.write(path, bytes);
   f.commit();
   await assert.rejects(f.validate(), /Unexpected Authority/);
@@ -375,8 +399,9 @@ test('F02 Step 4 requires separate registry admission, source provenance, and in
   assert.equal(await f.validate({base: admittedBase}), 1);
   let upstreamBlob = '0'.repeat(40);
   t.mock.method(globalThis, 'fetch', async (url) => {
+    if (url.endsWith('/git/ref/heads/main')) return Response.json({ref:'refs/heads/main', object:{type:'commit', sha:'a'.repeat(40)}});
     if (url.includes('/git/trees/') && !url.endsWith(`/${'a'.repeat(40)}?recursive=1`)) return new Response(null, {status: 404});
-    if (url.includes('/git/trees/')) return Response.json({truncated:false, tree:manifest.files.map((file) => ({
+    if (url.includes('/git/trees/')) return Response.json({truncated:false, tree:[...manifest.files, ...JSON.parse(f.read('.specify/contract-source.json')).files].map((file) => ({
       path:file.sourcePath, type:'blob', mode:'100644', sha:file.sourcePath === path ? upstreamBlob : file.sourceBlob
     }))});
     const sourcePath = decodeURIComponent(url.split(`/${manifest.sourceCommit}/`)[1]);
@@ -490,7 +515,7 @@ function addSpec(f, id, citeChangedAuthority) {
   mkdirSync(join(f.root, dir));
   const spec = f.spec.replace('FE-001', `FE-${id}`);
   f.write(dir + '/spec.md', citeChangedAuthority ? spec :
-    spec.replace('[AUTH:V1-TECHNICAL] V1-C36\n', '[AUTH:V1-PRODUCT] U01\n'));
+    spec.replace(/^\[AUTH:V1-TECHNICAL\].*\n/gm, '').replace('**Kind**: BUSINESS', '**Kind**: ENGINEERING').replace('**Business Semantics**: CHANGED', '**Business Semantics**: NONE\n**Phase**: NOT APPLICABLE'));
   return dir + '/spec.md';
 }
 
@@ -612,10 +637,8 @@ test('F05 applies downstream coverage to an otherwise approved engineering Autho
 });
 
 test('F05 accepts an Authority sync without assessment when no baseline Spec depends on it', async (t) => {
-  const f = fixture(t);
-  f.write(specPath, f.spec.replace('[AUTH:V1-TECHNICAL] V1-C36', '[AUTH:V1-PRODUCT] U01'));
-  f.write(`${folder}/tasks.md`, `- [ ] ${taskLine.replace('V1-C36', 'U01')}\n`);
-  const base = f.commit();
+  const f = fixture(t, {sliceKind:'ENGINEERING', canonicalBusinessRef:false});
+  const base = f.base;
   modifyAuthority(f);
   f.commit();
   assert.equal(await f.validate({base}), 1);
@@ -771,4 +794,122 @@ test('GitHub API helpers use optional authentication without leaking tokens', as
       return true;
     },
   );
+});
+
+
+test('hardening ENGINEERING relabel cannot remove changed-business traceability', async (t) => {
+  const f = fixture(t, {sliceKind: 'ENGINEERING', semantics: 'CHANGED', canonicalBusinessRef: false});
+  await assert.rejects(f.validate(), /canonical product\/technical selector/);
+});
+
+test('hardening business semantics cannot be omitted or contradicted', async (t) => {
+  for (const replacement of ['', '**Business Semantics**: NONE']) {
+    const f = fixture(t);
+    f.write(`${folder}/spec.md`, f.spec.replace('**Business Semantics**: CHANGED', replacement));
+    await assert.rejects(f.validate(), /Business Semantics/);
+  }
+});
+
+test('hardening changed semantics require product, Phase and real contract capability', async (t) => {
+  for (const [before, after, error] of [
+    ['[AUTH:V1-PRODUCT] U01\n', '', /canonical product requirement/],
+    ['[AUTH:V1-TECHNICAL] Phase 1：Common Core 地基\n', '', /Phase 1–6/],
+    ['[CONTRACT] GET /fixture', '[CONTRACT] POST /invented', /contract capability/],
+  ]) {
+    const f = fixture(t);
+    f.write(`${folder}/spec.md`, f.spec.replace(before, after));
+    await assert.rejects(f.validate(), error);
+  }
+  const gap = fixture(t);
+  gap.write(`${folder}/spec.md`, gap.spec.replace('[CONTRACT] GET /fixture', '[CONTRACT] GAP: unavailable backend; implementation BLOCKED'));
+  assert.equal(await gap.validate(), 1, 'A documented gap permits planning, never claims backend readiness');
+});
+
+test('hardening Audit 1 must assess the declared business semantics', async (t) => {
+  const f = fixture(t, {sliceKind: 'ENGINEERING', canonicalBusinessRef: false});
+  const record = JSON.parse(f.read(`${folder}/audit1.json`));
+  delete record.semanticAssessment;
+  f.json(`${folder}/audit1.json`, record);
+  const base = f.commit();
+  f.delivery(true, base); f.commit();
+  await assert.rejects(f.validate({base}), /Audit 1 semantic assessment/);
+});
+
+test('hardening acceptance rejects empty PASS and stale candidate, design, artifact or observation', async (t) => {
+  for (const edit of [
+    (v) => ({type: v.type, result: 'PASS', reference: 'empty PASS'}),
+    (v) => ({...v, candidateFiles: {[applicationPath]: '0'.repeat(64)}}),
+    (v) => ({...v, design: [{...v.design[0], sha256: '0'.repeat(64)}]}),
+    (v) => ({...v, artifacts: [{...v.artifacts[0], sha256: '0'.repeat(64)}]}),
+    (v) => ({...v, operations: []}),
+    (v) => ({...v, unverified: ['true device still unavailable']}),
+    (v) => ({...v, defects: [{description:'blocking observation', blocking: true}]}),
+  ]) {
+    const f = fixture(t, {verificationType:'visual'});
+    f.delivery();
+    f.json(f.verificationPath, edit(JSON.parse(f.read(f.verificationPath))));
+    const binding = JSON.parse(f.read(bindingPath));
+    binding.files[f.verificationPath] = digest(f.read(f.verificationPath));
+    f.json(bindingPath, binding);
+    const evidence = JSON.parse(f.read(evidencePath));
+    evidence.binding = digest(f.read(bindingPath));
+    f.json(evidencePath, evidence); f.commit();
+    await assert.rejects(f.validate(), /acceptance evidence/);
+  }
+});
+
+// Add verifyFreshness and isAdditionalAuthority to upstream imports in bootstrap.test.mjs.
+test('freshness compares relevant blobs at a resolved real main instead of requiring equal commits', async () => {
+  const sourceCommit = '1'.repeat(40);
+  const main = '2'.repeat(40);
+  const sourcePath = 'packages/generated/openapi.json';
+  const sourceBlob = '3'.repeat(40);
+  const manifest = {sourceRepository: SOURCE, sourceCommit, files: [{sourcePath, sourceBlob}]};
+  let changed = false;
+  let missing = false;
+  let mode = '100644';
+  let truncated = false;
+  let invalidMain = false;
+  const get = async (url) => {
+    if (url.endsWith('/git/ref/heads/main')) return Response.json({ref:'refs/heads/main', object: {type:'commit', sha:invalidMain ? 'main' : main}});
+    assert.ok(url.endsWith(`/git/trees/${main}?recursive=1`));
+    return Response.json({truncated, tree: missing ? [] : [
+      {path:sourcePath, type:'blob', mode, sha:changed ? '4'.repeat(40) : sourceBlob},
+      {path:'apps/server/unrelated.ts', type:'blob', mode:'100644', sha:'5'.repeat(40)},
+    ]});
+  };
+  assert.deepEqual(await verifyFreshness(manifest, 'contract', {get}), {kind:'contract', sourceCommit, main, status:'CURRENT', files:1});
+  changed = true;
+  await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /STALE contract.*impact assessment and controlled sync required/);
+  changed = false;
+  missing = true;
+  await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /STALE contract/);
+  missing = false;
+  mode = '120000';
+  await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /STALE contract/);
+  mode = '100644';
+  truncated = true;
+  await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /tree is incomplete/);
+  truncated = false;
+  invalidMain = true;
+  await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /Invalid upstream main reference/);
+  await assert.rejects(verifyFreshness(manifest, 'contract', {get:async () => {throw new Error('network failed');}}), /network failed/);
+});
+
+test('Step 4 path admission follows upstream design-system and screens without reopening Step 3', () => {
+  assert.equal(isAdditionalAuthority('Docs/frontend/design-system/fixture.md'), true);
+  assert.equal(isAdditionalAuthority('Docs/frontend/screens/fixture.md'), true);
+  assert.equal(isAdditionalAuthority('Docs/frontend/screens/V1页面与屏幕架构.md'), false);
+  assert.equal(isAdditionalAuthority('Docs/frontend/step-4/fixture.md'), false);
+  assert.equal(isAdditionalAuthority('Docs/frontend/screens/../fixture.md'), false);
+});
+
+
+test('hardening a declared contract gap blocks implementation even with authorized paths', async (t) => {
+  const f = fixture(t);
+  f.write(`${folder}/spec.md`, f.spec.replace('[CONTRACT] GET /fixture', '[CONTRACT] GAP: required server contract absent; BLOCKED'));
+  renewAudit(f, f.base, []);
+  const base = f.commit();
+  f.delivery(true, base); f.commit();
+  await assert.rejects(f.validate({base}), /Contract gap blocks implementation/);
 });
