@@ -1138,6 +1138,75 @@ test('freshness blocks transitive component drift and unresolved indirect refere
   /cannot reliably determine relevance.*unresolvable component reference/);
 });
 
+const aliasedAuthDocument = () => {
+  const doc = baseContractDocument();
+  doc.components.securitySchemes = {
+    bearerAuth: {$ref: '#/components/securitySchemes/ActualAuth'},
+    ActualAuth: {type: 'http', scheme: 'bearer'},
+  };
+  return doc;
+};
+
+const chainedAuthDocument = () => {
+  const doc = baseContractDocument();
+  doc.components.securitySchemes = {
+    bearerAuth: {$ref: '#/components/securitySchemes/AuthAlias'},
+    AuthAlias: {$ref: '#/components/securitySchemes/ActualAuth'},
+    ActualAuth: {type: 'http', scheme: 'bearer'},
+  };
+  return doc;
+};
+
+test('freshness resolves named security schemes through the component closure', async (t) => {
+  const unrelatedOnly = aliasedAuthDocument();
+  unrelatedOnly.info.version = '0.1.1-plan';
+  unrelatedOnly.paths['/api/v1/other'].get.responses['200'].description = 'changed';
+  const unchanged = contractFreshnessFixture(t, unrelatedOnly, {pinnedDocument: aliasedAuthDocument()});
+  const result = await verifyFreshness(unchanged.manifest, 'contract',
+    {get: unchanged.get, root: unchanged.root, dependencies: unchanged.dependencies});
+  assert.equal(result.status, 'CURRENT_WITH_UNRELATED_DRIFT');
+  assert.deepEqual(result.unrelated, ['packages/generated/openapi.json']);
+
+  for (const [pinnedDocument, mutate] of [
+    [aliasedAuthDocument, (next) => { next.components.securitySchemes.ActualAuth.scheme = 'basic'; }],
+    [aliasedAuthDocument, (next) => { delete next.components.securitySchemes.ActualAuth; }],
+    [aliasedAuthDocument, (next) => {
+      next.components.securitySchemes.OtherAuth = {type: 'http', scheme: 'bearer'};
+      next.components.securitySchemes.bearerAuth.$ref = '#/components/securitySchemes/OtherAuth';
+    }],
+    [chainedAuthDocument, (next) => { next.components.securitySchemes.ActualAuth.scheme = 'basic'; }],
+    [chainedAuthDocument, (next) => { next.components.securitySchemes.AuthAlias.$ref = '#/components/securitySchemes/Missing'; }],
+  ]) {
+    const next = pinnedDocument();
+    mutate(next);
+    const f = contractFreshnessFixture(t, next, {pinnedDocument: pinnedDocument()});
+    await assert.rejects(verifyFreshness(f.manifest, 'contract',
+      {get: f.get, root: f.root, dependencies: f.dependencies}),
+    /STALE contract.*impact assessment and controlled sync required/);
+  }
+});
+
+test('freshness fails closed on unresolvable and unsupported security schemes', async (t) => {
+  const unresolved = (version) => {
+    const doc = aliasedAuthDocument();
+    delete doc.components.securitySchemes.bearerAuth;
+    doc.info.version = version;
+    return doc;
+  };
+  const absent = contractFreshnessFixture(t, unresolved('0.1.1-plan'),
+    {pinnedDocument: unresolved('0.1.0-plan')});
+  await assert.rejects(verifyFreshness(absent.manifest, 'contract',
+    {get: absent.get, root: absent.root, dependencies: absent.dependencies}),
+  /cannot reliably determine relevance.*unresolvable component reference #\/components\/securitySchemes\/bearerAuth/);
+
+  const external = aliasedAuthDocument();
+  external.components.securitySchemes.ActualAuth = {$ref: 'https://example.com/auth.json#/ActualAuth'};
+  const unsupported = contractFreshnessFixture(t, external, {pinnedDocument: aliasedAuthDocument()});
+  await assert.rejects(verifyFreshness(unsupported.manifest, 'contract',
+    {get: unsupported.get, root: unsupported.root, dependencies: unsupported.dependencies}),
+  /cannot reliably determine relevance.*undecidable component reference/);
+});
+
 test('generated declarations drift is never classified as unrelated', async (t) => {
   const unrelatedDocument = () => {
     const doc = baseContractDocument();

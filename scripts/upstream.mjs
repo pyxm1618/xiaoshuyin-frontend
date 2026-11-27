@@ -231,9 +231,22 @@ function contractDrift(pinned, upstream, operations) {
         canonical(before.item?.servers) !== canonical(after.item?.servers)) {
       relevant.add(operation);
     }
+    const securityNames = new Set();
+    for (const [doc, surface] of [[pinned, before], [upstream, after]]) {
+      for (const requirement of effectiveSecurity(doc, surface) ?? []) {
+        for (const name of Object.keys(requirement ?? {})) securityNames.add(name);
+      }
+    }
+    if (canonical(effectiveSecurity(pinned, before)) !== canonical(effectiveSecurity(upstream, after))) {
+      relevant.add(`${operation} security`);
+    }
     const refs = new Set();
     collectRefs({operation: before.node, parameters: before.item?.parameters, servers: before.item?.servers}, refs);
     collectRefs({operation: after.node, parameters: after.item?.parameters, servers: after.item?.servers}, refs);
+    // A security requirement name addresses components.securitySchemes, and that
+    // component may itself be a Reference Object. Seeding the same closure keeps
+    // authentication resolvable transitively instead of comparing an opaque alias.
+    for (const name of securityNames) refs.add(`#/components/securitySchemes/${name}`);
     if (refs.size) {
       const beforeClosure = componentClosure(pinned, refs);
       const afterClosure = componentClosure(upstream, refs);
@@ -246,19 +259,6 @@ function contractDrift(pinned, upstream, operations) {
         }
         if (canonical(beforeValue) !== canonical(afterValue)) relevant.add(ref);
       }
-    }
-    const securityNames = new Set();
-    for (const [doc, surface] of [[pinned, before], [upstream, after]]) {
-      for (const requirement of effectiveSecurity(doc, surface) ?? []) {
-        for (const name of Object.keys(requirement ?? {})) securityNames.add(name);
-      }
-    }
-    if (canonical(effectiveSecurity(pinned, before)) !== canonical(effectiveSecurity(upstream, after))) {
-      relevant.add(`${operation} security`);
-    }
-    for (const name of securityNames) {
-      if (canonical(pinned.components?.securitySchemes?.[name]) !==
-          canonical(upstream.components?.securitySchemes?.[name])) relevant.add(`securityScheme:${name}`);
     }
   }
   return [...relevant];
