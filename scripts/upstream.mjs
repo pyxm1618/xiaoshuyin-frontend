@@ -136,9 +136,149 @@ export async function verifyRemote(manifest, kind) {
   }
 }
 
-// Integrity establishes the pinned source; freshness compares only imported files
-// with one resolved main commit. Unrelated backend changes do not require a sync.
-export async function verifyFreshness(manifest, kind, { get = githubGet } = {}) {
+export function declaredDependencies(root) {
+  const registryPath = join(root, '.specify/authority-unit-registry.json');
+  const units = existsSync(registryPath) ? JSON.parse(readFileSync(registryPath, 'utf8')).units ?? [] : [];
+  const byId = new Map(units.filter(({owner}) => owner === 'imported').map(({id, path}) => [id, path]));
+  const authorityUnits = new Set();
+  const operations = new Set();
+  const specsRoot = join(root, 'specs');
+  if (!existsSync(specsRoot)) return { authorityUnits, operations };
+  for (const entry of readdirSync(specsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const specPath = join(specsRoot, entry.name, 'spec.md');
+    if (!existsSync(specPath)) continue;
+    const text = readFileSync(specPath, 'utf8');
+    for (const match of text.matchAll(/^\[AUTH:([A-Z0-9-]+)\] .+$/gm)) {
+      const path = byId.get(match[1]);
+      if (path) authorityUnits.add(path);
+    }
+    for (const match of text.matchAll(/^\[CONTRACT\] (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) (\/\S+)$/gm)) {
+      operations.add(`${match[1]} ${match[2]}`);
+    }
+  }
+  return { authorityUnits, operations };
+}
+
+const componentRef = /^#\/components\/([^/]+)\/([^/]+)$/;
+const operationSyntax = /^([A-Z]+) (\S+)$/;
+
+function canonical(value) {
+  if (value === undefined) return 'undefined';
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function collectRefs(value, refs) {
+  if (Array.isArray(value)) {
+    for (const item of value) collectRefs(item, refs);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  if (typeof value.$ref === 'string') refs.add(value.$ref);
+  for (const item of Object.values(value)) collectRefs(item, refs);
+}
+
+function componentClosure(doc, seeds) {
+  const closure = new Map();
+  const queue = [...seeds];
+  while (queue.length) {
+    const ref = queue.pop();
+    if (closure.has(ref)) continue;
+    const match = ref.match(componentRef);
+    if (!match) throw new Error(`undecidable component reference ${ref}`);
+    const value = doc.components?.[match[1]]?.[match[2]];
+    closure.set(ref, value);
+    if (value === undefined) continue;
+    const nested = new Set();
+    collectRefs(value, nested);
+    for (const item of nested) if (!closure.has(item)) queue.push(item);
+  }
+  return closure;
+}
+
+function operationSurface(doc, operation) {
+  const match = operation.match(operationSyntax);
+  if (!match) throw new Error(`invalid declared operation ${operation}`);
+  const item = doc.paths?.[match[2]];
+  return { item, node: item?.[match[1].toLowerCase()], path: match[2] };
+}
+
+function effectiveSecurity(doc, surface) {
+  return surface.node.security !== undefined ? surface.node.security : doc.security;
+}
+
+// A client depends on the declared operations plus everything those operations
+// reference: request/response schemas, parameters, headers, errors, security
+// schemes and path-level protocol metadata. Everything else is unrelated drift.
+function contractDrift(pinned, upstream, operations) {
+  if (!operations.length) throw new Error('no declared [CONTRACT] operation defines the client surface');
+  const relevant = new Set();
+  if (pinned.openapi !== upstream.openapi) relevant.add('openapi');
+  if (canonical(pinned.servers) !== canonical(upstream.servers)) relevant.add('servers');
+  for (const operation of operations) {
+    const before = operationSurface(pinned, operation);
+    const after = operationSurface(upstream, operation);
+    if (before.node === undefined || after.node === undefined) {
+      relevant.add(operation);
+      continue;
+    }
+    if (canonical(before.node) !== canonical(after.node) ||
+        canonical(before.item?.parameters) !== canonical(after.item?.parameters) ||
+        canonical(before.item?.servers) !== canonical(after.item?.servers)) {
+      relevant.add(operation);
+    }
+    const refs = new Set();
+    collectRefs({operation: before.node, parameters: before.item?.parameters, servers: before.item?.servers}, refs);
+    collectRefs({operation: after.node, parameters: after.item?.parameters, servers: after.item?.servers}, refs);
+    if (refs.size) {
+      const beforeClosure = componentClosure(pinned, refs);
+      const afterClosure = componentClosure(upstream, refs);
+      for (const ref of refs) {
+        if (canonical(beforeClosure.get(ref)) !== canonical(afterClosure.get(ref))) relevant.add(ref);
+      }
+    }
+    const securityNames = new Set();
+    for (const [doc, surface] of [[pinned, before], [upstream, after]]) {
+      for (const requirement of effectiveSecurity(doc, surface) ?? []) {
+        for (const name of Object.keys(requirement ?? {})) securityNames.add(name);
+      }
+    }
+    if (canonical(effectiveSecurity(pinned, before)) !== canonical(effectiveSecurity(upstream, after))) {
+      relevant.add(`${operation} security`);
+    }
+    for (const name of securityNames) {
+      if (canonical(pinned.components?.securitySchemes?.[name]) !==
+          canonical(upstream.components?.securitySchemes?.[name])) relevant.add(`securityScheme:${name}`);
+    }
+  }
+  return [...relevant];
+}
+
+async function rawSnapshot(main, sourcePath, get) {
+  const encoded = sourcePath.split('/').map(encodeURIComponent).join('/');
+  return Buffer.from(await (await get(`https://raw.githubusercontent.com/${SOURCE}/${main}/${encoded}`)).arrayBuffer());
+}
+
+const undecidable = (kind, main, manifest, changed, reason) => new Error(
+  `STALE ${kind}: upstream main ${main} differs from pinned ${manifest.sourceCommit}: ${changed.join(', ')}; ` +
+  `cannot reliably determine relevance (${reason}); impact assessment and controlled sync required`);
+
+const stale = (kind, main, manifest, paths) => new Error(
+  `STALE ${kind}: upstream main ${main} differs from pinned ${manifest.sourceCommit}: ${paths.join(', ')}; ` +
+  'impact assessment and controlled sync required');
+
+// Integrity establishes the pinned source; freshness compares imported files with
+// one resolved main commit. Only drift inside a declared Spec dependency blocks;
+// unrelated drift is reported, and a missing dependency surface fails closed.
+export async function verifyFreshness(manifest, kind, {
+  get = githubGet,
+  root = process.cwd(),
+  dependencies = { authorityUnits: new Set(), operations: new Set() },
+} = {}) {
   if (!PATHS[kind] || manifest.sourceRepository !== SOURCE || !commitSyntax.test(manifest.sourceCommit) ||
       !Array.isArray(manifest.files) || !manifest.files.length) {
     throw new Error(`Invalid ${kind} freshness manifest`);
@@ -150,15 +290,50 @@ export async function verifyFreshness(manifest, kind, { get = githubGet } = {}) 
   }
   const tree = await (await get(`https://api.github.com/repos/${SOURCE}/git/trees/${main}?recursive=1`)).json();
   if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Upstream main tree is incomplete');
+  const entries = new Map(tree.tree.map((entry) => [entry.path, entry]));
   const changed = manifest.files.filter(({sourcePath, sourceBlob}) => {
-    const upstream = tree.tree.filter((entry) => entry.path === sourcePath);
-    return upstream.length !== 1 || upstream[0].type !== 'blob' ||
-      upstream[0].mode !== '100644' || upstream[0].sha !== sourceBlob;
+    const upstream = entries.get(sourcePath);
+    return !upstream || upstream.type !== 'blob' || upstream.mode !== '100644' || upstream.sha !== sourceBlob;
   }).map(({sourcePath}) => sourcePath);
-  if (changed.length) {
-    throw new Error(`STALE ${kind}: upstream main ${main} differs from pinned ${manifest.sourceCommit}: ${changed.join(', ')}; impact assessment and controlled sync required`);
+  if (!changed.length) {
+    return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT', files: manifest.files.length };
   }
-  return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT', files: manifest.files.length };
+  if (kind === 'authority') {
+    const related = dependencies.authorityUnits ?? new Set();
+    if (!related.size) throw undecidable(kind, main, manifest, changed, 'no governed Spec cites an imported Authority');
+    const drifted = changed.filter((path) => related.has(path));
+    if (drifted.length) throw stale(kind, main, manifest, drifted);
+    return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT_WITH_UNRELATED_DRIFT',
+      files: manifest.files.length, unrelated: changed };
+  }
+  const operations = [...(dependencies.operations ?? [])];
+  if (!operations.length) throw undecidable(kind, main, manifest, changed, 'no Spec declares a contract operation');
+  const documentPath = 'packages/generated/openapi.json';
+  const declarationsPath = 'packages/generated/openapi.d.ts';
+  const upstreamDocument = entries.get(documentPath);
+  if (!upstreamDocument || upstreamDocument.type !== 'blob' || upstreamDocument.mode !== '100644') {
+    throw stale(kind, main, manifest, changed);
+  }
+  const upstreamBytes = await rawSnapshot(main, documentPath, get);
+  if (blob(upstreamBytes) !== upstreamDocument.sha) {
+    throw new Error(`INTEGRITY: upstream blob mismatch: ${documentPath}`);
+  }
+  let relevant;
+  try {
+    relevant = contractDrift(
+      JSON.parse(readFileSync(join(root, documentPath))),
+      JSON.parse(upstreamBytes),
+      operations,
+    );
+  } catch (error) {
+    throw undecidable(kind, main, manifest, changed, error.message);
+  }
+  if (!relevant.length && changed.includes(declarationsPath) && !changed.includes(documentPath)) {
+    throw undecidable(kind, main, manifest, changed, 'generated declarations changed without an OpenAPI document change');
+  }
+  if (relevant.length) throw stale(kind, main, manifest, relevant);
+  return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT_WITH_UNRELATED_DRIFT',
+    files: manifest.files.length, unrelated: changed };
 }
 
 function operations(bytes) {
@@ -208,7 +383,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const manifest = verifySnapshot(process.cwd(), command, { base: process.env.GOVERNANCE_BASE || undefined });
     if (args.includes('--remote')) {
       await verifyRemote(manifest, command);
-      console.log(JSON.stringify(await verifyFreshness(manifest, command)));
+      const freshness = await verifyFreshness(manifest, command, { dependencies: declaredDependencies(process.cwd()) });
+      if (freshness.status === 'CURRENT_WITH_UNRELATED_DRIFT') {
+        console.warn(`Freshness notice: unrelated upstream drift in ${freshness.unrelated.join(', ')}`);
+      }
+      console.log(JSON.stringify(freshness));
     }
     console.log(`${command} integrity PASS ${manifest.files.length} files at ${manifest.sourceCommit}`);
   }

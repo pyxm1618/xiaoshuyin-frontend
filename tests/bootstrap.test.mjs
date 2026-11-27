@@ -348,14 +348,14 @@ test('an unrelated base or stale task digest cannot be reused as current evidenc
   await assert.rejects(f.validate(), /historical Task Evidence/);
 });
 
-test('F01 engineering Authority edits require a prior exact-byte approval', async (t) => {
+test('F01 engineering Authority edits require an exact-byte Owner approval', async (t) => {
   const f = fixture(t);
   const path = 'Docs/frontend/engineering/V1前端工程技术设计.md';
   const before = f.read(path);
   const after = Buffer.concat([before, Buffer.from('\nSynthetic change.\n')]);
   f.write(path, after);
   f.commit();
-  await assert.rejects(f.validate(), /Missing prior frontend engineering Authority approval/);
+  await assert.rejects(f.validate(), /Missing frontend engineering Authority approval/);
   f.write(path, before);
   f.json(engineeringApproval, { repository: REPOSITORY, decision: 'Synthetic approved change',
     files: {[path]: {before: digest(before), after: digest(after)}} });
@@ -367,7 +367,67 @@ test('F01 engineering Authority edits require a prior exact-byte approval', asyn
   assert.equal(await f.validate({base: approvedBase}), 1);
   f.write(path, Buffer.concat([after, Buffer.from('Unapproved extra text.\n')]));
   f.commit();
-  await assert.rejects(f.validate({base: approvedBase}), /Invalid prior frontend engineering Authority approval/);
+  await assert.rejects(f.validate({base: approvedBase}), /Invalid frontend engineering Authority approval/);
+});
+
+test('F06 Owner approval, engineering Authority, impact, planning and Audit 1 converge in one controlled PR', async (t) => {
+  const f = fixture(t);
+  const before = f.read(engineeringAuthority);
+  const after = Buffer.concat([before, Buffer.from('\nSynthetic approved engineering decision.\n')]);
+  f.write(engineeringAuthority, after);
+  f.json(engineeringApproval, { repository: REPOSITORY, decision: 'Synthetic same-PR Owner approval',
+    files: {[engineeringAuthority]: {before: digest(before), after: digest(after)}} });
+  f.write(`${folder}/spec.md`, Buffer.concat([f.read(`${folder}/spec.md`),
+    Buffer.from('\n## Authority Revision\nSynthetic approved revision.\n')]));
+  const config = JSON.parse(f.read('tsconfig.json'));
+  f.json('tsconfig.json', {...config, include: [...config.include, 'packages/platform/**/*.ts']});
+  const authority = [[engineeringAuthority, gitBlob(before), gitBlob(after)]];
+  writeImpact(f, f.base, authority, {[specPath]: {
+    disposition: 'converged', rationale: 'Approved engineering decision requires a direct Spec revision.',
+    evidence: 'Synthetic same-PR impact review', changedArtifacts: [specPath],
+  }});
+  renewAudit(f, f.base, authority);
+  f.commit();
+  assert.equal(await f.validate(), 1);
+});
+
+test('F06 same-PR approval still rejects mixed implementation, tampered content and unrelated governance', async (t) => {
+  const mixed = fixture(t);
+  const before = mixed.read(engineeringAuthority);
+  const after = Buffer.concat([before, Buffer.from('\nSynthetic approved decision.\n')]);
+  mixed.write(engineeringAuthority, after);
+  mixed.json(engineeringApproval, { repository: REPOSITORY, decision: 'Synthetic approval',
+    files: {[engineeringAuthority]: {before: digest(before), after: digest(after)}} });
+  mixed.write(applicationPath, 'export {};\n');
+  mixed.commit();
+  await assert.rejects(mixed.validate(), /Frontend engineering Authority requires a separate controlled change/);
+
+  const tampered = fixture(t);
+  const previous = tampered.read(engineeringAuthority);
+  const next = Buffer.concat([previous, Buffer.from('\nSynthetic approved decision.\n')]);
+  tampered.write(engineeringAuthority, next);
+  tampered.json(engineeringApproval, { repository: REPOSITORY, decision: 'Synthetic approval',
+    files: {[engineeringAuthority]: {before: digest(previous), after: '0'.repeat(64)}} });
+  tampered.commit();
+  await assert.rejects(tampered.validate(), /Invalid frontend engineering Authority approval/);
+
+  const diluted = fixture(t);
+  const original = diluted.read(engineeringAuthority);
+  const changed = Buffer.concat([original, Buffer.from('\nSynthetic approved decision.\n')]);
+  diluted.write(engineeringAuthority, changed);
+  diluted.write('README.md', 'Synthetic unrelated governance edit.\n');
+  diluted.json(engineeringApproval, { repository: REPOSITORY, decision: 'Synthetic approval',
+    files: {[engineeringAuthority]: {before: digest(original), after: digest(changed)}} });
+  diluted.commit();
+  await assert.rejects(diluted.validate(), /Frontend engineering Authority requires a separate controlled change/);
+
+  const extra = fixture(t);
+  const bytes = extra.read(engineeringAuthority);
+  extra.json(engineeringApproval, { repository: REPOSITORY, decision: 'Synthetic approval',
+    files: {[engineeringAuthority]: {before: digest(bytes), after: '1'.repeat(64)}} });
+  extra.write('README.md', 'Synthetic unrelated governance edit.\n');
+  extra.commit();
+  await assert.rejects(extra.validate(), /without document changes must remain its own PR/);
 });
 
 test('F02 Step 4 requires separate registry admission, source provenance, and intact existing imports', async (t) => {
@@ -702,7 +762,7 @@ test('FE-B4-F03 the locked compiler detects type errors and governance protects 
   ]) {
     f.json('tsconfig.json', {...config, ...edit});
     f.commit();
-    await assert.rejects(f.validate(), /separate tsconfig.json-only governance PR/);
+    await assert.rejects(f.validate(), /tsconfig\.json may only accompany directly related engineering Authority and planning changes/);
   }
   f.json('tsconfig.json', {extends: './apps/miniprogram/other.json'});
   f.commit();
@@ -737,6 +797,30 @@ test('FE-B4-F03 the locked compiler detects type errors and governance protects 
   assert.equal(checkTypes().status, 0);
 });
 
+
+test('F07 tsconfig.json may ship with related planning, but not implementation or unrelated governance', async (t) => {
+  const planning = fixture(t);
+  planning.write(`${folder}/plan.md`, Buffer.concat([planning.read(`${folder}/plan.md`),
+    Buffer.from('\n[ALLOW] tests/related.test.mjs\n')]));
+  planning.json('tsconfig.json', {...JSON.parse(planning.read('tsconfig.json')),
+    include: ['packages/generated/openapi.d.ts', 'apps/miniprogram/**/*.ts', 'packages/platform/**/*.ts']});
+  planning.commit();
+  assert.equal(await planning.validate(), 1);
+
+  const implementation = fixture(t);
+  implementation.json('tsconfig.json', {...JSON.parse(implementation.read('tsconfig.json')),
+    include: ['packages/generated/openapi.d.ts', 'apps/miniprogram/**/*.ts', 'packages/platform/**/*.ts']});
+  implementation.write(applicationPath, 'export {};\n');
+  implementation.commit();
+  await assert.rejects(implementation.validate(), /tsconfig\.json may only accompany/);
+
+  const unrelated = fixture(t);
+  unrelated.json('tsconfig.json', {...JSON.parse(unrelated.read('tsconfig.json')),
+    include: ['packages/generated/openapi.d.ts', 'apps/miniprogram/**/*.ts', 'packages/platform/**/*.ts']});
+  unrelated.write('README.md', 'Synthetic unrelated governance edit.\n');
+  unrelated.commit();
+  await assert.rejects(unrelated.validate(), /tsconfig\.json may only accompany/);
+});
 
 test('GitHub API helpers use optional authentication without leaking tokens', async () => {
   const token = 'synthetic-ci-token';
@@ -895,6 +979,142 @@ test('freshness compares relevant blobs at a resolved real main instead of requi
   invalidMain = true;
   await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /Invalid upstream main reference/);
   await assert.rejects(verifyFreshness(manifest, 'contract', {get:async () => {throw new Error('network failed');}}), /network failed/);
+});
+
+test('freshness blocks cited Authority drift and notices uncited drift', async () => {
+  const sourceCommit = '1'.repeat(40);
+  const main = '2'.repeat(40);
+  const cited = 'Docs/V1技术设计.md';
+  const unrelated = 'Docs/总产品需求.md';
+  const manifest = {sourceRepository: SOURCE, sourceCommit, files: [
+    {sourcePath: cited, sourceBlob: '3'.repeat(40)},
+    {sourcePath: unrelated, sourceBlob: '4'.repeat(40)},
+  ]};
+  let tree = manifest.files.map(({sourcePath, sourceBlob}) =>
+    ({path: sourcePath, type: 'blob', mode: '100644', sha: sourceBlob}));
+  const get = async (url) => {
+    if (url.endsWith('/git/ref/heads/main')) return Response.json({ref: 'refs/heads/main', object: {type: 'commit', sha: main}});
+    return Response.json({truncated: false, tree});
+  };
+  const dependencies = {authorityUnits: new Set([cited]), operations: new Set()};
+  tree = tree.map((entry) => entry.path === unrelated ? {...entry, sha: '5'.repeat(40)} : entry);
+  const result = await verifyFreshness(manifest, 'authority', {get, dependencies});
+  assert.equal(result.status, 'CURRENT_WITH_UNRELATED_DRIFT');
+  assert.deepEqual(result.unrelated, [unrelated]);
+  tree = tree.map((entry) => entry.path === cited ? {...entry, sha: '6'.repeat(40)} : entry);
+  await assert.rejects(verifyFreshness(manifest, 'authority', {get, dependencies}),
+    /STALE authority.*V1技术设计\.md.*controlled sync required/);
+  await assert.rejects(verifyFreshness(manifest, 'authority',
+    {get, dependencies: {authorityUnits: new Set(), operations: new Set()}}),
+  /no governed Spec cites an imported Authority/);
+});
+
+const baseContractDocument = () => structuredClone({
+  openapi: '3.1.0', info: {version: '0.1.0-plan'},
+  servers: [{url: 'https://api.example'}],
+  security: [{bearerAuth: []}],
+  paths: {
+    '/api/v1/me': {get: {operationId: 'getMe', responses: {
+      '200': {content: {'application/json': {schema: {$ref: '#/components/schemas/MeResponse'}}}},
+      '401': {content: {'application/json': {schema: {$ref: '#/components/schemas/Error'}}}},
+    }}},
+    '/api/v1/other': {get: {operationId: 'getOther', responses: {'200': {description: 'ok'}}}},
+  },
+  components: {
+    securitySchemes: {bearerAuth: {type: 'http', scheme: 'bearer'}},
+    schemas: {
+      MeResponse: {type: 'object', properties: {id: {type: 'string'}}},
+      Error: {type: 'object', properties: {code: {type: 'string'}}},
+    },
+  },
+});
+
+function contractFreshnessFixture(t, upstreamDocument, {declarationsChanged = false, corrupt = false} = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'xsy-freshness-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, 'packages/generated'), { recursive: true });
+  const pinnedDocument = Buffer.from(JSON.stringify(baseContractDocument(), null, 2));
+  const pinnedDeclarations = Buffer.from('export interface paths {}\n');
+  writeFileSync(join(root, 'packages/generated/openapi.json'), pinnedDocument);
+  writeFileSync(join(root, 'packages/generated/openapi.d.ts'), pinnedDeclarations);
+  const document = Buffer.from(typeof upstreamDocument === 'string'
+    ? upstreamDocument : JSON.stringify(upstreamDocument, null, 2));
+  const declarations = Buffer.from(declarationsChanged
+    ? 'export interface paths { fixture: true }\n' : pinnedDeclarations);
+  const main = '2'.repeat(40);
+  const tree = [
+    {path: 'packages/generated/openapi.json', type: 'blob', mode: '100644', sha: gitBlob(document)},
+    {path: 'packages/generated/openapi.d.ts', type: 'blob', mode: '100644', sha: gitBlob(declarations)},
+  ];
+  const manifest = {sourceRepository: SOURCE, sourceCommit: '1'.repeat(40), files: [
+    {sourcePath: 'packages/generated/openapi.json', sourceBlob: gitBlob(pinnedDocument)},
+    {sourcePath: 'packages/generated/openapi.d.ts', sourceBlob: gitBlob(pinnedDeclarations)},
+  ]};
+  const get = async (url) => {
+    if (url.endsWith('/git/ref/heads/main')) return Response.json({ref: 'refs/heads/main', object: {type: 'commit', sha: main}});
+    if (url.includes('/git/trees/')) return Response.json({truncated: false, tree});
+    if (url.endsWith('/packages/generated/openapi.json')) return new Response(corrupt ? Buffer.from('tampered') : document);
+    if (url.endsWith('/packages/generated/openapi.d.ts')) return new Response(declarations);
+    throw new Error(`Unexpected freshness URL: ${url}`);
+  };
+  const dependencies = {authorityUnits: new Set(), operations: new Set(['GET /api/v1/me'])};
+  return {root, main, manifest, get, dependencies};
+}
+
+test('freshness classifies contract drift across referenced schemas, auth, errors and protocol', async (t) => {
+  const doc = baseContractDocument();
+  doc.info.version = '0.1.1-plan';
+  doc.paths['/api/v1/other'].get.responses['200'].description = 'changed';
+  doc.components.schemas.Unrelated = {type: 'string'};
+  const unrelated = contractFreshnessFixture(t, doc, {declarationsChanged: true});
+  const result = await verifyFreshness(unrelated.manifest, 'contract',
+    {get: unrelated.get, root: unrelated.root, dependencies: unrelated.dependencies});
+  assert.equal(result.status, 'CURRENT_WITH_UNRELATED_DRIFT');
+  assert.deepEqual(result.unrelated, ['packages/generated/openapi.json', 'packages/generated/openapi.d.ts']);
+
+  const mutations = [
+    (next) => { next.components.schemas.MeResponse.properties.id.type = 'number'; },
+    (next) => { next.components.securitySchemes.bearerAuth.scheme = 'basic'; },
+    (next) => { next.components.schemas.Error.properties.code.type = 'number'; },
+    (next) => { next.servers = [{url: 'https://api.changed'}]; },
+    (next) => { delete next.paths['/api/v1/me']; },
+    (next) => { next.paths['/api/v1/me'].get.responses['200'].content['application/json'].schema.$ref = 'other.json#/Schema'; },
+  ];
+  for (const mutate of mutations) {
+    const next = baseContractDocument();
+    mutate(next);
+    const f = contractFreshnessFixture(t, next);
+    await assert.rejects(verifyFreshness(f.manifest, 'contract',
+      {get: f.get, root: f.root, dependencies: f.dependencies}),
+    /STALE contract.*impact assessment and controlled sync required/);
+  }
+});
+
+test('freshness fails closed when relevance cannot be established', async (t) => {
+  const versioned = () => {
+    const doc = baseContractDocument();
+    doc.info.version = '0.1.1-plan';
+    return doc;
+  };
+  const noOperations = contractFreshnessFixture(t, versioned());
+  await assert.rejects(verifyFreshness(noOperations.manifest, 'contract',
+    {get: noOperations.get, root: noOperations.root, dependencies: {authorityUnits: new Set(), operations: new Set()}}),
+  /cannot reliably determine relevance/);
+
+  const declarationsOnly = contractFreshnessFixture(t, baseContractDocument(), {declarationsChanged: true});
+  await assert.rejects(verifyFreshness(declarationsOnly.manifest, 'contract',
+    {get: declarationsOnly.get, root: declarationsOnly.root, dependencies: declarationsOnly.dependencies}),
+  /generated declarations changed without an OpenAPI document change/);
+
+  const malformed = contractFreshnessFixture(t, 'not an OpenAPI document');
+  await assert.rejects(verifyFreshness(malformed.manifest, 'contract',
+    {get: malformed.get, root: malformed.root, dependencies: malformed.dependencies}),
+  /cannot reliably determine relevance/);
+
+  const tampered = contractFreshnessFixture(t, versioned(), {corrupt: true});
+  await assert.rejects(verifyFreshness(tampered.manifest, 'contract',
+    {get: tampered.get, root: tampered.root, dependencies: tampered.dependencies}),
+  /INTEGRITY: upstream blob mismatch/);
 });
 
 test('Step 4 path admission follows upstream design-system and screens without reopening Step 3', () => {
