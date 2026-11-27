@@ -237,8 +237,14 @@ function contractDrift(pinned, upstream, operations) {
     if (refs.size) {
       const beforeClosure = componentClosure(pinned, refs);
       const afterClosure = componentClosure(upstream, refs);
-      for (const ref of refs) {
-        if (canonical(beforeClosure.get(ref)) !== canonical(afterClosure.get(ref))) relevant.add(ref);
+      const reachable = new Set([...beforeClosure.keys(), ...afterClosure.keys()]);
+      for (const ref of reachable) {
+        const beforeValue = beforeClosure.get(ref);
+        const afterValue = afterClosure.get(ref);
+        if (beforeValue === undefined && afterValue === undefined) {
+          throw new Error(`unresolvable component reference ${ref}`);
+        }
+        if (canonical(beforeValue) !== canonical(afterValue)) relevant.add(ref);
       }
     }
     const securityNames = new Set();
@@ -272,8 +278,10 @@ const stale = (kind, main, manifest, paths) => new Error(
   'impact assessment and controlled sync required');
 
 // Integrity establishes the pinned source; freshness compares imported files with
-// one resolved main commit. Only drift inside a declared Spec dependency blocks;
-// unrelated drift is reported, and a missing dependency surface fails closed.
+// one resolved main commit. Relevance is declaration-scoped and deliberately
+// conservative: imported Authority files cited by repo Specs, and declared contract
+// operations plus their transitive component closure. This is not Slice-wide or
+// clause-level impact isolation; undeclared or unprovable surfaces fail closed.
 export async function verifyFreshness(manifest, kind, {
   get = githubGet,
   root = process.cwd(),
@@ -283,6 +291,16 @@ export async function verifyFreshness(manifest, kind, {
       !Array.isArray(manifest.files) || !manifest.files.length) {
     throw new Error(`Invalid ${kind} freshness manifest`);
   }
+  const paths = manifest.files.map(({sourcePath}) => sourcePath);
+  if (new Set(paths).size !== paths.length || manifest.files.some(({sourcePath, sourceBlob}) =>
+    typeof sourcePath !== 'string' || !/^[a-f0-9]{40}$/.test(sourceBlob ?? '') ||
+    (kind === 'authority'
+      ? !PATHS.authority.includes(sourcePath) && !isAdditionalAuthority(sourcePath)
+      : !PATHS.contract.includes(sourcePath))) ||
+    (kind === 'contract' && (paths.length !== PATHS.contract.length ||
+      paths.some((path) => !PATHS.contract.includes(path))))) {
+    throw new Error(`Invalid ${kind} freshness manifest entries`);
+  }
   const reference = await (await get(`https://api.github.com/repos/${SOURCE}/git/ref/heads/main`)).json();
   const main = reference.object?.sha;
   if (reference.ref !== 'refs/heads/main' || reference.object?.type !== 'commit' || !commitSyntax.test(main)) {
@@ -291,10 +309,13 @@ export async function verifyFreshness(manifest, kind, {
   const tree = await (await get(`https://api.github.com/repos/${SOURCE}/git/trees/${main}?recursive=1`)).json();
   if (tree.truncated || !Array.isArray(tree.tree)) throw new Error('Upstream main tree is incomplete');
   const entries = new Map(tree.tree.map((entry) => [entry.path, entry]));
-  const changed = manifest.files.filter(({sourcePath, sourceBlob}) => {
+  const abnormal = manifest.files.filter(({sourcePath}) => {
     const upstream = entries.get(sourcePath);
-    return !upstream || upstream.type !== 'blob' || upstream.mode !== '100644' || upstream.sha !== sourceBlob;
+    return !upstream || upstream.type !== 'blob' || upstream.mode !== '100644';
   }).map(({sourcePath}) => sourcePath);
+  if (abnormal.length) throw stale(kind, main, manifest, abnormal);
+  const changed = manifest.files.filter(({sourcePath, sourceBlob}) =>
+    entries.get(sourcePath).sha !== sourceBlob).map(({sourcePath}) => sourcePath);
   if (!changed.length) {
     return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT', files: manifest.files.length };
   }
@@ -310,28 +331,40 @@ export async function verifyFreshness(manifest, kind, {
   if (!operations.length) throw undecidable(kind, main, manifest, changed, 'no Spec declares a contract operation');
   const documentPath = 'packages/generated/openapi.json';
   const declarationsPath = 'packages/generated/openapi.d.ts';
+  const localContract = (path) => {
+    const entry = manifest.files.find(({sourcePath}) => sourcePath === path);
+    const file = join(root, path);
+    if (!entry || !existsSync(file) || !lstatSync(file).isFile()) {
+      throw new Error(`INTEGRITY: local pinned contract missing: ${path}`);
+    }
+    const bytes = readFileSync(file);
+    if (blob(bytes) !== entry.sourceBlob) throw new Error(`INTEGRITY: local pinned blob mismatch: ${path}`);
+    return bytes;
+  };
+  const localDocument = localContract(documentPath);
+  localContract(declarationsPath);
   const upstreamDocument = entries.get(documentPath);
-  if (!upstreamDocument || upstreamDocument.type !== 'blob' || upstreamDocument.mode !== '100644') {
-    throw stale(kind, main, manifest, changed);
-  }
   const upstreamBytes = await rawSnapshot(main, documentPath, get);
   if (blob(upstreamBytes) !== upstreamDocument.sha) {
     throw new Error(`INTEGRITY: upstream blob mismatch: ${documentPath}`);
   }
+  if (changed.includes(declarationsPath)) {
+    const declarationsBytes = await rawSnapshot(main, declarationsPath, get);
+    if (blob(declarationsBytes) !== entries.get(declarationsPath).sha) {
+      throw new Error(`INTEGRITY: upstream blob mismatch: ${declarationsPath}`);
+    }
+  }
   let relevant;
   try {
-    relevant = contractDrift(
-      JSON.parse(readFileSync(join(root, documentPath))),
-      JSON.parse(upstreamBytes),
-      operations,
-    );
+    relevant = contractDrift(JSON.parse(localDocument), JSON.parse(upstreamBytes), operations);
   } catch (error) {
     throw undecidable(kind, main, manifest, changed, error.message);
   }
-  if (!relevant.length && changed.includes(declarationsPath) && !changed.includes(documentPath)) {
-    throw undecidable(kind, main, manifest, changed, 'generated declarations changed without an OpenAPI document change');
-  }
   if (relevant.length) throw stale(kind, main, manifest, relevant);
+  if (changed.includes(declarationsPath)) {
+    throw undecidable(kind, main, manifest, changed,
+      'generated declarations changed and relevance cannot be proven from the declared contract surface');
+  }
   return { kind, sourceCommit: manifest.sourceCommit, main, status: 'CURRENT_WITH_UNRELATED_DRIFT',
     files: manifest.files.length, unrelated: changed };
 }

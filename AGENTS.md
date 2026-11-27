@@ -14,6 +14,8 @@
 
 需要修改后端拥有的产品需求、总体/技术架构、冻结体验或 API 合同时，Developer AI 必须停在最小安全点，向 Owner 提交“上游变更请求”，至少说明：所需变更、原因与证据、受影响 Authority 选择器或合同 operation、当前暂缓或阻断范围、建议方案与待决决策。只有 Owner 促成上游权威文档或合同变更，并完成独立同步与影响收敛后，前端才可继续。禁止直接修改上游 Authority、静默同步、用旧合同准入或绕过同步影响评估。
 
+Freshness 依赖判断仅覆盖仓库 Spec 已声明的 imported Authority 文件与合同 operation 及其传递组件闭包，不构成 Slice 级或条款级影响隔离；无法解析或无法证明相关性时按阻断处理。《前后端合同与集成规范》仍保留的“前置独立批准 PR”表述，须在本治理变更合入后通过最小工程 Authority 审批 PR 收敛，不得以代码或本文件单方面覆盖。
+
 ## 交付与 STOP
 
 遵循 [四 AI 流程](Docs/frontend/engineering/V1前端开发与验收规范.md)。Plan AI 1 Specify / Clarify / 冻结，Plan AI 2 Plan / Checklist / Tasks / Analyze / Audit 1，Developer AI Implement / Test / Converge，独立 Audit 2 对抗性只读审计当前 Exact Head。独立审计由不同 AI 完成，CI 和 GitHub human approval 均不能代替。只有 Owner 在审计与门禁通过后决定合并。

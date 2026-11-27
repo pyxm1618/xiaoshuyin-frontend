@@ -948,8 +948,13 @@ test('freshness compares relevant blobs at a resolved real main instead of requi
   const sourceCommit = '1'.repeat(40);
   const main = '2'.repeat(40);
   const sourcePath = 'packages/generated/openapi.json';
+  const declarationsPath = 'packages/generated/openapi.d.ts';
   const sourceBlob = '3'.repeat(40);
-  const manifest = {sourceRepository: SOURCE, sourceCommit, files: [{sourcePath, sourceBlob}]};
+  const declarationsBlob = '6'.repeat(40);
+  const manifest = {sourceRepository: SOURCE, sourceCommit, files: [
+    {sourcePath, sourceBlob},
+    {sourcePath: declarationsPath, sourceBlob: declarationsBlob},
+  ]};
   let changed = false;
   let missing = false;
   let mode = '100644';
@@ -960,10 +965,11 @@ test('freshness compares relevant blobs at a resolved real main instead of requi
     assert.ok(url.endsWith(`/git/trees/${main}?recursive=1`));
     return Response.json({truncated, tree: missing ? [] : [
       {path:sourcePath, type:'blob', mode, sha:changed ? '4'.repeat(40) : sourceBlob},
+      {path:declarationsPath, type:'blob', mode:'100644', sha:declarationsBlob},
       {path:'apps/server/unrelated.ts', type:'blob', mode:'100644', sha:'5'.repeat(40)},
     ]});
   };
-  assert.deepEqual(await verifyFreshness(manifest, 'contract', {get}), {kind:'contract', sourceCommit, main, status:'CURRENT', files:1});
+  assert.deepEqual(await verifyFreshness(manifest, 'contract', {get}), {kind:'contract', sourceCommit, main, status:'CURRENT', files:2});
   changed = true;
   await assert.rejects(verifyFreshness(manifest, 'contract', {get}), /STALE contract.*impact assessment and controlled sync required/);
   changed = false;
@@ -1023,19 +1029,30 @@ const baseContractDocument = () => structuredClone({
   components: {
     securitySchemes: {bearerAuth: {type: 'http', scheme: 'bearer'}},
     schemas: {
-      MeResponse: {type: 'object', properties: {id: {type: 'string'}}},
+      MeResponse: {type: 'object', properties: {
+        id: {type: 'string'},
+        profile: {$ref: '#/components/schemas/MeProfile'},
+      }},
+      MeProfile: {type: 'object', properties: {
+        settings: {$ref: '#/components/schemas/MeSettings'},
+      }},
+      MeSettings: {type: 'object', properties: {theme: {type: 'string'}}},
       Error: {type: 'object', properties: {code: {type: 'string'}}},
     },
   },
 });
 
-function contractFreshnessFixture(t, upstreamDocument, {declarationsChanged = false, corrupt = false} = {}) {
+function contractFreshnessFixture(t, upstreamDocument, {
+  declarationsChanged = false, corrupt = false, corruptDeclarations = false,
+  omitDeclarations = false, declarationsMode = '100644', pinnedDocument = baseContractDocument(),
+} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'xsy-freshness-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   mkdirSync(join(root, 'packages/generated'), { recursive: true });
-  const pinnedDocument = Buffer.from(JSON.stringify(baseContractDocument(), null, 2));
+  const pinnedBytes = Buffer.from(typeof pinnedDocument === 'string'
+    ? pinnedDocument : JSON.stringify(pinnedDocument, null, 2));
   const pinnedDeclarations = Buffer.from('export interface paths {}\n');
-  writeFileSync(join(root, 'packages/generated/openapi.json'), pinnedDocument);
+  writeFileSync(join(root, 'packages/generated/openapi.json'), pinnedBytes);
   writeFileSync(join(root, 'packages/generated/openapi.d.ts'), pinnedDeclarations);
   const document = Buffer.from(typeof upstreamDocument === 'string'
     ? upstreamDocument : JSON.stringify(upstreamDocument, null, 2));
@@ -1044,17 +1061,21 @@ function contractFreshnessFixture(t, upstreamDocument, {declarationsChanged = fa
   const main = '2'.repeat(40);
   const tree = [
     {path: 'packages/generated/openapi.json', type: 'blob', mode: '100644', sha: gitBlob(document)},
-    {path: 'packages/generated/openapi.d.ts', type: 'blob', mode: '100644', sha: gitBlob(declarations)},
   ];
+  if (!omitDeclarations) {
+    tree.push({path: 'packages/generated/openapi.d.ts', type: 'blob', mode: declarationsMode, sha: gitBlob(declarations)});
+  }
   const manifest = {sourceRepository: SOURCE, sourceCommit: '1'.repeat(40), files: [
-    {sourcePath: 'packages/generated/openapi.json', sourceBlob: gitBlob(pinnedDocument)},
+    {sourcePath: 'packages/generated/openapi.json', sourceBlob: gitBlob(pinnedBytes)},
     {sourcePath: 'packages/generated/openapi.d.ts', sourceBlob: gitBlob(pinnedDeclarations)},
   ]};
   const get = async (url) => {
     if (url.endsWith('/git/ref/heads/main')) return Response.json({ref: 'refs/heads/main', object: {type: 'commit', sha: main}});
     if (url.includes('/git/trees/')) return Response.json({truncated: false, tree});
     if (url.endsWith('/packages/generated/openapi.json')) return new Response(corrupt ? Buffer.from('tampered') : document);
-    if (url.endsWith('/packages/generated/openapi.d.ts')) return new Response(declarations);
+    if (url.endsWith('/packages/generated/openapi.d.ts')) {
+      return new Response(corruptDeclarations ? Buffer.from('tampered') : declarations);
+    }
     throw new Error(`Unexpected freshness URL: ${url}`);
   };
   const dependencies = {authorityUnits: new Set(), operations: new Set(['GET /api/v1/me'])};
@@ -1066,14 +1087,16 @@ test('freshness classifies contract drift across referenced schemas, auth, error
   doc.info.version = '0.1.1-plan';
   doc.paths['/api/v1/other'].get.responses['200'].description = 'changed';
   doc.components.schemas.Unrelated = {type: 'string'};
-  const unrelated = contractFreshnessFixture(t, doc, {declarationsChanged: true});
+  const unrelated = contractFreshnessFixture(t, doc);
   const result = await verifyFreshness(unrelated.manifest, 'contract',
     {get: unrelated.get, root: unrelated.root, dependencies: unrelated.dependencies});
   assert.equal(result.status, 'CURRENT_WITH_UNRELATED_DRIFT');
-  assert.deepEqual(result.unrelated, ['packages/generated/openapi.json', 'packages/generated/openapi.d.ts']);
+  assert.deepEqual(result.unrelated, ['packages/generated/openapi.json']);
 
   const mutations = [
     (next) => { next.components.schemas.MeResponse.properties.id.type = 'number'; },
+    (next) => { next.components.schemas.MeProfile.properties.settings.type = 'object'; },
+    (next) => { next.components.schemas.MeSettings.properties.theme.type = 'number'; },
     (next) => { next.components.securitySchemes.bearerAuth.scheme = 'basic'; },
     (next) => { next.components.schemas.Error.properties.code.type = 'number'; },
     (next) => { next.servers = [{url: 'https://api.changed'}]; },
@@ -1090,6 +1113,83 @@ test('freshness classifies contract drift across referenced schemas, auth, error
   }
 });
 
+test('freshness blocks transitive component drift and unresolved indirect references', async (t) => {
+  const mutations = [
+    (next) => { next.components.schemas.MeProfile.properties.settings.description = 'changed'; },
+    (next) => { next.components.schemas.MeSettings.properties.theme.enum = ['light', 'dark']; },
+    (next) => { delete next.components.schemas.MeSettings; },
+  ];
+  for (const mutate of mutations) {
+    const next = baseContractDocument();
+    mutate(next);
+    const f = contractFreshnessFixture(t, next);
+    await assert.rejects(verifyFreshness(f.manifest, 'contract',
+      {get: f.get, root: f.root, dependencies: f.dependencies}),
+    /STALE contract.*impact assessment and controlled sync required/);
+  }
+
+  const pinned = baseContractDocument();
+  pinned.components.schemas.MeProfile.properties.settings = {$ref: '#/components/schemas/Missing'};
+  const upstream = structuredClone(pinned);
+  upstream.info.version = '0.1.1-plan';
+  const missing = contractFreshnessFixture(t, upstream, {pinnedDocument: pinned});
+  await assert.rejects(verifyFreshness(missing.manifest, 'contract',
+    {get: missing.get, root: missing.root, dependencies: missing.dependencies}),
+  /cannot reliably determine relevance.*unresolvable component reference/);
+});
+
+test('generated declarations drift is never classified as unrelated', async (t) => {
+  const unrelatedDocument = () => {
+    const doc = baseContractDocument();
+    doc.info.version = '0.1.1-plan';
+    doc.paths['/api/v1/other'].get.responses['200'].description = 'changed';
+    return doc;
+  };
+  for (const [upstreamDocument, declarationsChanged] of [
+    [baseContractDocument(), true],
+    [unrelatedDocument(), true],
+  ]) {
+    const f = contractFreshnessFixture(t, upstreamDocument, {declarationsChanged});
+    await assert.rejects(verifyFreshness(f.manifest, 'contract',
+      {get: f.get, root: f.root, dependencies: f.dependencies}),
+    /cannot reliably determine relevance.*generated declarations changed/);
+  }
+
+  for (const options of [{omitDeclarations: true}, {declarationsMode: '120000'}]) {
+    const f = contractFreshnessFixture(t, unrelatedDocument(), options);
+    await assert.rejects(verifyFreshness(f.manifest, 'contract',
+      {get: f.get, root: f.root, dependencies: f.dependencies}),
+    /STALE contract.*openapi\.d\.ts/);
+  }
+
+  const tampered = contractFreshnessFixture(t, unrelatedDocument(),
+    {declarationsChanged: true, corruptDeclarations: true});
+  await assert.rejects(verifyFreshness(tampered.manifest, 'contract',
+    {get: tampered.get, root: tampered.root, dependencies: tampered.dependencies}),
+  /INTEGRITY: upstream blob mismatch: packages\/generated\/openapi\.d\.ts/);
+
+  const base = contractFreshnessFixture(t, unrelatedDocument());
+  for (const files of [
+    [base.manifest.files[0]],
+    [base.manifest.files[0], base.manifest.files[0]],
+    [...base.manifest.files, {sourcePath: 'packages/generated/other.json', sourceBlob: '4'.repeat(40)}],
+  ]) {
+    await assert.rejects(verifyFreshness({...base.manifest, files}, 'contract',
+      {get: base.get, root: base.root, dependencies: base.dependencies}),
+    /Invalid contract freshness manifest entries/);
+  }
+
+  writeFileSync(join(base.root, 'packages/generated/openapi.json'), 'tampered');
+  await assert.rejects(verifyFreshness(base.manifest, 'contract',
+    {get: base.get, root: base.root, dependencies: base.dependencies}),
+  /INTEGRITY: local pinned blob mismatch: packages\/generated\/openapi\.json/);
+  writeFileSync(join(base.root, 'packages/generated/openapi.json'), JSON.stringify(baseContractDocument(), null, 2));
+  rmSync(join(base.root, 'packages/generated/openapi.d.ts'));
+  await assert.rejects(verifyFreshness(base.manifest, 'contract',
+    {get: base.get, root: base.root, dependencies: base.dependencies}),
+  /INTEGRITY: local pinned contract missing: packages\/generated\/openapi\.d\.ts/);
+});
+
 test('freshness fails closed when relevance cannot be established', async (t) => {
   const versioned = () => {
     const doc = baseContractDocument();
@@ -1104,7 +1204,7 @@ test('freshness fails closed when relevance cannot be established', async (t) =>
   const declarationsOnly = contractFreshnessFixture(t, baseContractDocument(), {declarationsChanged: true});
   await assert.rejects(verifyFreshness(declarationsOnly.manifest, 'contract',
     {get: declarationsOnly.get, root: declarationsOnly.root, dependencies: declarationsOnly.dependencies}),
-  /generated declarations changed without an OpenAPI document change/);
+  /cannot reliably determine relevance.*generated declarations changed/);
 
   const malformed = contractFreshnessFixture(t, 'not an OpenAPI document');
   await assert.rejects(verifyFreshness(malformed.manifest, 'contract',
