@@ -21,6 +21,10 @@
 
 以上约束 FR-002、FR-003、FR-007：真实平台兼容性、生成合同唯一类型来源、最小依赖及技术决策边界。
 
+[AUTH:V1-TECHNICAL] API / Client Contract
+
+Authority 同步记录（2026-11-28）：上游 main 1c5b64012c0b9c5b173d67eabc3acfaae9450f6c 的总体技术架构 §18 与 V1 技术设计 §2、§4.1、§27A、API / Client Contract 及相关技术栈表已解除对各端内部 HTTP 客户端库和 Transport 实现的强制绑定；两端仍必须消费同一生成 TypeScript types、保持强类型且与服务端合同无漂移，共同 API、安全及 §18.4 流式通信合同不变。当前前端自有 FE-ENGINEERING「工具和运行环境」仍保留 openapi-fetch 约束，本同步不修改该 Authority，不批准替代方案。下列 FR/AC、Plan、Checklist、Tasks、Analyze 中的旧选型及 Specify 基线作为现有冻结义务与历史记录保留，不表示上游仍强制绑定；正式替代方案须另行完成 Owner 明示的前端工程 Authority 批准、相关规划定向修订及 Audit 1 续期。原 Developer head 8c72fcf231148623c1e6e027989f32692181413b 的 T005/T006 BLOCKED 证据保持不变；本同步及其规划审查不构成 Developer 恢复许可、运行时或真机 PASS。替代方案获正式批准并重新满足准入、真实设备、联调及所有适用验收条件前，正式 Transport 实现继续 BLOCKED。
+
 [AUTH:FE-ENGINEERING] 请求、可靠性与隐私
 
 约束 FR-004、FR-005、FR-006：请求所有权、有界生命周期、脱敏、真实响应及中断处理。本 Slice 仅承担工程范围，不提前实现 actor/session 业务。
@@ -99,7 +103,7 @@ Specify 基线：
 
 ### FR-007 — Transport Decision Boundary
 
-openapi-fetch 是当前技术 Authority。先取得 FR-002 的真实兼容性证据，兼容且保持合同语义方可继续正式 Transport 实现；不能满足则 STOP 正式 Transport 实现，提交真实证据及 targeted technical authority change request，等待正式批准。wx.request + thin typed transport adapter 只是候选替代，未获批准不得当作正式实现。任何批准方案仍以 generated OpenAPI types 为唯一 Contract Type Authority。不因普通 HTTP 验证通过而宣称 AI 流式交付就绪。
+openapi-fetch 是当前尚未修订的前端工程 Authority 所绑定的方案（不是本次同步后的上游强制选型）。先取得 FR-002 的真实兼容性证据，兼容且保持合同语义方可继续正式 Transport 实现；不能满足则 STOP 正式 Transport 实现，提交真实证据及 targeted technical authority change request，等待正式批准。wx.request + thin typed transport adapter 只是候选替代，未获批准不得当作正式实现。任何批准方案仍以 generated OpenAPI types 为唯一 Contract Type Authority。不因普通 HTTP 验证通过而宣称 AI 流式交付就绪。
 
 ### Engineering dependencies and phase boundary
 

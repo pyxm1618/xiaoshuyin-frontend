@@ -1,6 +1,6 @@
 {
   "sourceRepository": "pyxm1618/xiaoshuyin",
-  "sourceCommit": "e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7",
+  "sourceCommit": "1c5b64012c0b9c5b173d67eabc3acfaae9450f6c",
   "files": [
     {
       "sourcePath": "Docs/V1产品需求.md",
@@ -11,9 +11,9 @@
     },
     {
       "sourcePath": "Docs/V1技术设计.md",
-      "sourceBlob": "afef9fcc4af41b6137e5020717135972a3d515fc",
+      "sourceBlob": "2885694c1833c9643797c0947a1b7e581ae2fb05",
       "destinationPath": "Docs/V1技术设计.md",
-      "sha256": "5b5ceb3ca6bafaca2c9c0a3e6706a1a7d70a349dbc2648857c7e150b26fd0cc9",
+      "sha256": "c9fac42ec05d1d155e3837c314dabcb59dff26ba5b00d02555fd8a64e20447c9",
       "classification": "upstream-authority"
     },
     {
@@ -60,9 +60,9 @@
     },
     {
       "sourcePath": "Docs/总体技术架构.md",
-      "sourceBlob": "6b4630803f371faf6d93f27361070223d0f661a0",
+      "sourceBlob": "f2e1589e3f87d1970f5ce342887fc7d3bf95dee4",
       "destinationPath": "Docs/总体技术架构.md",
-      "sha256": "c0c82a91c3a57218b6c87022930d3af46375f79df992b98425cda8894057f823",
+      "sha256": "de4e23eb22b125658bdccf7d9fc9728c4c122e0918ec314688789940aa49adcf",
       "classification": "upstream-authority"
     }
   ]
