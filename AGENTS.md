@@ -8,6 +8,14 @@
 
 上游变更走独立同步 PR，必须绑定真实 Source Commit、blob、内容 hash 和影响；Step 4 须先在上游批准冻结。业务开发禁止顺手改 Authority 和治理。解析依赖只用真实生成合同；若 Zod / Fastify / OpenAPI 未承载某能力，登记 Contract Gap。客户端禁止实现领域状态机、Scene Routing、业务资格、安全、授权、专业判断、伪造 Consent、事件或 API。
 
+## 工程自主决策与上游交接
+
+前端对本仓库的工程设计、开发与验收规范、实现与测试治理拥有自主决策权。在不改变产品语义、冻结体验、生成合同、安全与合规规则的前提下，工程决策可在同一受控 PR 内完成：Owner 明示的批准依据（`.specify/engineering-authority-approval.json`）、工程 Authority 文本、影响评估、直接相关规划修订及续期 Audit 1 共同交付，并保留真实批准与独立 Audit 2。批准记录必须绑定旧/新内容的准确哈希；批准无文档变更时仍独占 PR。
+
+需要修改后端拥有的产品需求、总体/技术架构、冻结体验或 API 合同时，Developer AI 必须停在最小安全点，向 Owner 提交“上游变更请求”，至少说明：所需变更、原因与证据、受影响 Authority 选择器或合同 operation、当前暂缓或阻断范围、建议方案与待决决策。只有 Owner 促成上游权威文档或合同变更，并完成独立同步与影响收敛后，前端才可继续。禁止直接修改上游 Authority、静默同步、用旧合同准入或绕过同步影响评估。
+
+Freshness 依赖判断仅覆盖仓库 Spec 已声明的 imported Authority 文件与合同 operation 及其传递组件闭包，不构成 Slice 级或条款级影响隔离；无法解析或无法证明相关性时按阻断处理。《前后端合同与集成规范》仍保留的“前置独立批准 PR”表述，须在本治理变更合入后通过最小工程 Authority 审批 PR 收敛，不得以代码或本文件单方面覆盖。
+
 ## 交付与 STOP
 
 遵循 [四 AI 流程](Docs/frontend/engineering/V1前端开发与验收规范.md)。Plan AI 1 Specify / Clarify / 冻结，Plan AI 2 Plan / Checklist / Tasks / Analyze / Audit 1，Developer AI Implement / Test / Converge，独立 Audit 2 对抗性只读审计当前 Exact Head。独立审计由不同 AI 完成，CI 和 GitHub human approval 均不能代替。只有 Owner 在审计与门禁通过后决定合并。

@@ -87,6 +87,8 @@ export function validateSpecs(root, units) {
     const kind = spec.match(/^\*\*Kind\*\*: (BUSINESS|ENGINEERING)$/m)?.[1];
     check(kind, `${folder}: missing or invalid Slice Kind`);
     const refs = authorityRefs(spec);
+    const operations = new Set([...spec.matchAll(/^\[CONTRACT\] (GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS) (\/\S+)$/gm)]
+      .map((match) => `${match[1]} ${match[2]}`));
     check(refs.length && refs.every(([, unit]) => units.has(unit)), `${folder}: missing or invalid Authority reference`);
     for (const [, unit, selector] of refs) {
       const source = readFileSync(join(root, units.get(unit)), 'utf8');
@@ -134,7 +136,8 @@ export function validateSpecs(root, units) {
       records = tasks(readFileSync(taskPath, 'utf8'), taskPath);
       for (const task of records.values()) check(refs.some(([, , selector]) => selector.trim() === task.req), `${folder}: unbound task requirement ${task.req}`);
     }
-    features.set(name, { id, kind, businessSemantics, contractGap: /^\[CONTRACT\] GAP:/m.test(spec), records, allowed, forbidden });
+    features.set(name, { id, kind, businessSemantics, contractGap: /^\[CONTRACT\] GAP:/m.test(spec),
+      records, allowed, forbidden, refs, operations });
   }
   return features;
 }
@@ -347,6 +350,23 @@ export async function validateGovernance(root, { base, repository, remote = fals
        (!existsSync(join(root, path)) || authorityPaths.includes(path)))) &&
     frontend.length === 3 && frontend.every(({id, path}) => /^Docs\/frontend\/engineering\/[^/]+\.md$/.test(path) && units.has(id)), 'Invalid Authority Unit Registry');
   const features = validateSpecs(root, units);
+  const citedUnits = new Set([...features.values()].flatMap((feature) => feature.refs.map(([, unit]) => unit)));
+  const dependencies = {
+    authorityUnits: new Set(registry.units.filter(({id, owner}) => owner === 'imported' && citedUnits.has(id))
+      .map(({path}) => path)),
+    operations: new Set([...features.values()].flatMap((feature) => [...feature.operations])),
+  };
+  const verifyPairFreshness = async () => {
+    const results = await Promise.all([
+      verifyFreshness(authority, 'authority', { dependencies }),
+      verifyFreshness(contract, 'contract', { dependencies }),
+    ]);
+    for (const result of results) {
+      if (result.status === 'CURRENT_WITH_UNRELATED_DRIFT') {
+        console.warn(`Freshness notice: unrelated upstream drift in ${result.unrelated.join(', ')}; no sync required`);
+      }
+    }
+  };
   const ownership = readJson(root, ownershipPath);
   const provenance = readJson(root, provenancePath);
   for (const [path, registry] of [[ownershipPath, ownership], [provenancePath, provenance]]) {
@@ -363,7 +383,10 @@ export async function validateGovernance(root, { base, repository, remote = fals
       !registeredPaths.includes(path) && !PATHS.contract.includes(path) && pathClass(path) === 'unknown');
     check(!stray, `Unexpected Authority/contract path or unclassified change: ${stray}`);
     if (changed.includes('tsconfig.json') && spawnSync('git', ['cat-file', '-e', `${base}:tsconfig.json`], { cwd: root }).status === 0) {
-      check(changed.length === 1, 'Static verification config requires a separate tsconfig.json-only governance PR');
+      const related = changed.every((path) => path === 'tsconfig.json' ||
+        frontend.some((unit) => unit.path === path) || pathClass(path) === 'planning' ||
+        path === authorityImpactPath || path === engineeringApproval);
+      check(related, 'tsconfig.json may only accompany directly related engineering Authority and planning changes');
     }
     if (changed.includes('package.json') && spawnSync('git', ['cat-file', '-e', `${base}:package.json`], { cwd: root }).status === 0) {
       const previous = JSON.parse(git(root, 'show', `${base}:package.json`));
@@ -404,25 +427,50 @@ export async function validateGovernance(root, { base, repository, remote = fals
         'Authority admission requires a separate reviewed registry-only change');
       }
       const localChanges = frontend.filter(({path}) => changed.includes(path));
+      const approvalChanged = changed.includes(engineeringApproval);
       if (localChanges.length) {
-        check(changed.every((path) => localChanges.some((unit) => unit.path === path) || pathClass(path) === 'planning' || path === authorityImpactPath),
-          'Frontend engineering Authority requires a separate change');
-        check(spawnSync('git', ['cat-file', '-e', `${base}:${engineeringApproval}`], { cwd: root }).status === 0,
-          'Missing prior frontend engineering Authority approval');
-        const approval = JSON.parse(git(root, 'show', `${base}:${engineeringApproval}`));
+        check(changed.every((path) => localChanges.some(({path: unit}) => unit === path) ||
+          pathClass(path) === 'planning' || path === authorityImpactPath ||
+          path === engineeringApproval || path === 'tsconfig.json'),
+        'Frontend engineering Authority requires a separate controlled change');
+        const approval = approvalChanged
+          ? readJson(root, engineeringApproval)
+          : (spawnSync('git', ['cat-file', '-e', `${base}:${engineeringApproval}`], { cwd: root }).status === 0
+            ? JSON.parse(git(root, 'show', `${base}:${engineeringApproval}`)) : undefined);
+        check(approval, 'Missing frontend engineering Authority approval');
         check(approval.repository === REPOSITORY && typeof approval.decision === 'string' && approval.decision.trim() &&
-          sameSet(Object.keys(approval.files), localChanges.map(({path}) => path)) &&
-          localChanges.every(({path}) => approval.files[path].before === sha256(git(root, 'show', `${base}:${path}`)) &&
-            approval.files[path].after === sha256(readFileSync(join(root, path)))),
-          'Invalid prior frontend engineering Authority approval');
+          sameSet(Object.keys(approval.files ?? {}), localChanges.map(({path}) => path)) &&
+          localChanges.every(({path}) => approval.files[path]?.before === sha256(git(root, 'show', `${base}:${path}`)) &&
+            approval.files[path]?.after === sha256(readFileSync(join(root, path)))),
+        'Invalid frontend engineering Authority approval');
       }
-      if (changed.includes(engineeringApproval)) check(changed.length === 1, 'Engineering Authority approval requires its own PR');
+      if (approvalChanged) {
+        const approval = readJson(root, engineeringApproval);
+        const paths = Object.keys(approval.files ?? {});
+        check(approval.repository === REPOSITORY && typeof approval.decision === 'string' && approval.decision.trim() &&
+          paths.length > 0 && paths.every((path) => frontend.some((unit) => unit.path === path)) &&
+          paths.every((path) => /^[a-f0-9]{64}$/.test(approval.files[path].before) &&
+            /^[a-f0-9]{64}$/.test(approval.files[path].after) &&
+            approval.files[path].before !== approval.files[path].after),
+        'Invalid frontend engineering Authority approval');
+        if (localChanges.length) {
+          check(sameSet(paths, localChanges.map(({path}) => path)),
+            'Frontend engineering Authority approval must cover exactly the changed Authority files');
+        } else {
+          check(changed.length === 1, 'An engineering Authority approval without document changes must remain its own PR');
+          for (const path of paths) {
+            check(spawnSync('git', ['cat-file', '-e', `${base}:${path}`], { cwd: root }).status === 0 &&
+              approval.files[path].before === sha256(git(root, 'show', `${base}:${path}`)),
+            'Approval before-content must match the base Authority');
+          }
+        }
+      }
       const sync = validateSync(root, base, changed, authorityPaths);
       validateAuthorityDownstream(root, base, changed);
       if (remote) {
         await Promise.all(sync.map((kind) => verifyRemote(kind === 'authority' ? authority : contract, kind)));
         if (sync.length || changed.some((path) => isImplementation(path) || pathClass(path) === 'planning')) {
-          await Promise.all([verifyFreshness(authority, 'authority'), verifyFreshness(contract, 'contract')]);
+          await verifyPairFreshness();
         }
       }
       const baseOwnership = JSON.parse(git(root, 'show', `${base}:${ownershipPath}`));
@@ -431,7 +479,7 @@ export async function validateGovernance(root, { base, repository, remote = fals
   }
   if (remote && !base) {
     await Promise.all([verifyRemote(authority, 'authority'), verifyRemote(contract, 'contract')]);
-    await Promise.all([verifyFreshness(authority, 'authority'), verifyFreshness(contract, 'contract')]);
+    await verifyPairFreshness();
   }
   return features.size;
 }
