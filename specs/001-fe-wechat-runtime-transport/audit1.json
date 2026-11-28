@@ -8,12 +8,12 @@
     "plan.md": "09a2d8785c121cda12d92723fa2b250a44f0c1d75a2aa91187ffbe1e37511ed8",
     "checklist.md": "1102c0e4668fd34d937ff10e77505284ba5f796df4179db061e6c8bc1cabce42",
     "tasks.md": "bd116a059a9aa13401efdd462f6615a52652dc8cbabb568ef4970438b9aa577c",
-    "analyze.md": "113cd2ddc5896bb33f13bbd1f69f0af8e0558ed8d6576cad361e829b791850ca"
+    "analyze.md": "bd00afa7a949ae7bf33f00d01e68058f9ce1b007c5b79d9b205a16bdcebd30c5"
   },
   "semanticAssessment": {
     "businessSemantics": "NONE",
     "rationale": "Reconciled scope covers native wx.request + thin typed transport adapter, diagnostic bootstrap, owner-local request lifecycle, isolated GET /api/v1/me contract verification with synthetic test identity, and isolated enableChunked/onChunkReceived byte probe. Zero user journeys, domain states, roles, session epochs, authorization rules, persistent mutations, or backend API changes are introduced. Phase remains NOT APPLICABLE and Step 4 Dependency remains NONE; future business, Experience Quality Gate, and Visual Fidelity obligations remain unwaived.",
-    "evidence": "Candidate spec.md (29d1ab08...), reconciled plan.md (09a2d878...) Scope Contract/Dependencies, analyze.md (113cd2dd...) Business semantics assessment, FR-001–007/AC-01–09 and T001–T014; FE-ENGINEERING 目录和依赖方向 / 请求、可靠性与隐私; FE-DELIVERY Slice 语义声明与实现准入; FE-INTEGRATION 联调边界; generated OpenAPI JSON blob 68d3b9e620a9fc291d21b3b830ba426a3bc13101. The planned PATCH compatibility risk probe is diagnostic only and introduces no business semantics."
+    "evidence": "Candidate spec.md (29d1ab08...), reconciled plan.md (09a2d878...) Scope Contract/Dependencies, analyze.md (bd00afa7...) Business semantics assessment, FR-001–007/AC-01–09 and T001–T014; FE-ENGINEERING 目录和依赖方向 / 请求、可靠性与隐私; FE-DELIVERY Slice 语义声明与实现准入; FE-INTEGRATION 联调边界; generated OpenAPI JSON blob 68d3b9e620a9fc291d21b3b830ba426a3bc13101. The planned PATCH compatibility risk probe is diagnostic only and introduces no business semantics."
   },
   "authorityImpact": "78c37c4e26e23cc848ee961c46dfeb0690fbe1f7e7b5e0cbe37365f0df2d681f"
 }
