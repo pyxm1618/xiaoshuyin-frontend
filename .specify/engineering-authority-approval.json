@@ -1,18 +1,14 @@
 {
   "repository": "pyxm1618/xiaoshuyin-frontend",
-  "decision": "Owner-authorized FINAL TARGETED HARDENING F-01–F-12 in this task (2026-11-26), including the Owner-confirmed 小树荫助手 Mini Program, business-boundary, experience-quality and content-form engineering decisions with EXTERNAL AUTHORITY DEPENDENCY EAD-01/EAD-02: proposed exact-content engineering Authority approval. This approval-only PR requires independent review and Owner merge before its dependent document application may land. No business development, FE-001, Step 4 content or upstream Authority override is authorized.",
+  "decision": "Owner-approved FINAL PLANNING CLOSEOUT on 2026-11-28. The Owner explicitly stated that both engineering Authority revisions may be approved and agreed to close out and return to development promptly (Owner 原话：两份都可以批准，我也同意尽快收口回到开发。). This approves the exact FE-ENGINEERING and FE-INTEGRATION before/after SHA-256 content below and authorizes converging them with the downstream planning, .specify/authority-downstream-impact.json, target tsconfig.json, the renewed Audit 1 and the PATCH risk-probe planning in the same controlled PR under the FE-INTEGRATION co-delivery rule. It does not authorize formal business implementation, FE-002, Step 4, Session/cache/retry platforms, backend contract changes, or any upstream Authority override; exact-head CI six checks and Owner merge remain required.",
   "files": {
     "Docs/frontend/engineering/V1前端工程技术设计.md": {
-      "before": "d72a8068edf810e4127bdbbd16c8875a3e5968ffc10f5d09e957eb9be6502b8b",
-      "after": "b5176fa3e9460f5efd30ead31fa1421518568167f0dd966e2445b1c006928a62"
-    },
-    "Docs/frontend/engineering/V1前端开发与验收规范.md": {
-      "before": "cb64a06909b6cba6bbafe9c1c0cc95aeeb3599e864577e80f6c2953a1a37b395",
-      "after": "814a070fcef93c110245328a8ae7bf3e394a0f352b86bbeb96783ca357bec8e7"
+      "before": "b5176fa3e9460f5efd30ead31fa1421518568167f0dd966e2445b1c006928a62",
+      "after": "e1f3824acb9e5ca308fd0f403881c4ccbc0ad12731dad08458b0a2d042257184"
     },
     "Docs/frontend/engineering/前后端合同与集成规范.md": {
-      "before": "61ee7548fa37079029383f1e30c7432bf12304c4c2a93d75694d6a3184900890",
-      "after": "8b21da566808171b34e18cfa9c35933759de218a0189b2b3dfce6fb7d34687f8"
+      "before": "8b21da566808171b34e18cfa9c35933759de218a0189b2b3dfce6fb7d34687f8",
+      "after": "512e44b5e2bb5d79864efce101098c8ac08d1fedfa0e5284966a1b5d95f967fd"
     }
   }
 }
