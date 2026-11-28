@@ -1,7 +1,7 @@
 {
   "type": "device",
   "result": "PASS",
-  "reference": "T004 real-device run of the final FE-001 candidate (converged branch feat/001-wechat-runtime-transport): the mini program was opened on an actual iPhone through WeChat DevTools 真机调试 over LAN, and the bootstrap page read and displayed the runtime base library version in-app via wx.getAppBaseInfo().SDKVersion. No Simulator substitution.",
+  "reference": "T004 and T013 device record of the FE-001 candidate: the mini program runs on an actual iPhone through WeChat DevTools 真机调试 over LAN (no Simulator), the bootstrap reads SDK 3.18.1 in-app via wx.getAppBaseInfo(), and for T013 the exact candidate was rebuilt and re-run on the device with package size, request measurements and startup behavior recorded. T004 was evidenced at 16:17 local when the page set was the bootstrap plus runtime and lifecycle probes; the final candidate adds the backend identity and chunked stream probe pages, whose device runs are recorded below.",
   "base": "06f881279bde1bf8085ea1c00b0875d737558ec6",
   "candidateFiles": {
     "apps/miniprogram/app.json": "c05bc296db42c1ec69c3531ce14b9368cfdedc62438bf5caea5f6a1426aa0d52",
@@ -47,8 +47,8 @@
       "sha256": "814a070fcef93c110245328a8ae7bf3e394a0f352b86bbeb96783ca357bec8e7"
     }
   ],
-  "observedAt": "2026-11-28T08:17:11Z",
-  "environment": "Device: iPhone 16 (iPhone17,3), iOS 26.6.2, WeChat 8.0.80; runtime base library SDK 3.18.1 read in-app via wx.getAppBaseInfo().SDKVersion. Runtime path: WeChat DevTools cask 2.02.2609250 (app build 36.6.0) 真机调试 over LAN, not the Simulator. Probe server: Node 26.13.0 on macOS 26.6.2 arm64 listening on http://192.168.2.135:8791 (all interfaces), logging the peer address and User-Agent; phone peer 192.168.2.212, UA MicroMessenger/8.0.80 NetType/WIFI. AppID wx746a39363f67ae95. Isolated technical probe only: no backend, production service, real family data, or production credentials involved.",
+  "observedAt": "2026-11-28T12:14:04Z",
+  "environment": "Device: iPhone 16 (iPhone17,3), iOS 26.6.2, WeChat 8.0.80; runtime base library SDK 3.18.1 read in-app via wx.getAppBaseInfo().SDKVersion. Runtime path: WeChat DevTools cask 2.02.2609250 (app build 36.6.0) 真机调试 over LAN, not the Simulator. Probe server: Node 26.13.0 on macOS 26.6.2 arm64 listening on http://192.168.2.135:8791 (all interfaces), logging the peer address and User-Agent; phone peer 192.168.2.212, UA MicroMessenger/8.0.80 NetType/WIFI. AppID wx746a39363f67ae95. Isolated technical probe only: no backend, production service, real family data, or production credentials involved. T013 additions: the preview rebuild was executed at 20:19 local with cli preview (AppID wx746a39363f67ae95) against the committed candidate tree and reported preview package TOTAL 86.5 KB (88573 bytes). The final device re-run is the accepted 20:13:17Z-20:14:04Z chunk probe run whose implementation file hashes equal this record. The retained device-bootstrap-final.jpg was captured at 16:17 local for T004 when the bootstrap exposed the runtime and lifecycle probe buttons; the final four-page navigation is evidenced by the backend identity probe run (16:43 local) and the chunk probe run (20:13 local), both opened from the bootstrap.",
   "operations": [
     {
       "action": "Compile and open the final candidate on the actual target iPhone through WeChat DevTools 真机调试 over LAN",
@@ -69,14 +69,43 @@
       "action": "Capture a device screenshot of the running final candidate",
       "expected": "A real screenshot of the current candidate showing the bootstrap lines is retained as acceptance media",
       "actual": "Screenshot taken 2026-11-28 16:17 local (1080x2341) showing the 小树荫助手 title bar, \"FE-001 bootstrap\", \"SDK 3.18.1\" and the two probe buttons; only status-bar system indicators (time, signal, Wi-Fi, battery) are visible, no account or personal data"
+    },
+    {
+      "action": "T013: rebuild the committed candidate with the frozen DevTools CLI",
+      "expected": "The native TypeScript build succeeds and reports the package size of the final candidate",
+      "actual": "cli preview --project <repo> --qr-format terminal exit 0 at 20:19 local; AppID wx746a39363f67ae95 resolved; preview package TOTAL 86.5 KB (88573 bytes)"
+    },
+    {
+      "action": "T013: re-run the exact candidate on the actual iPhone",
+      "expected": "The final candidate (bootstrap plus runtime, lifecycle, backend identity and chunk probe pages) runs on the device and reaches the probe pages from the bootstrap",
+      "actual": "Fresh 真机调试 session established at 19:47 local after the DevTools restart; the bootstrap rendered without white screen, and the backend identity probe (16:43 local, identical page files) and the chunk probe (20:13 local) were opened and executed from it; the chunk run is the accepted T012 run"
+    },
+    {
+      "action": "T013: record request measurements from the device runs",
+      "expected": "Actual request timings are recorded rather than estimated",
+      "actual": "Backend request log responseTime: POST /api/v1/auth/wechat 94.87 ms, authenticated GET /api/v1/me 27.39 ms, unauthenticated GET /api/v1/me 1.97 ms. Chunk probe: 6 chunks / 137 bytes over span 2003 ms; the buffered control delivered one complete 137-byte body; the 40-chunk background stream completed with span 19545 ms; the 40-chunk network stream completed after a 6482 ms interference gap between chunk arrivals"
+    },
+    {
+      "action": "T013: observe startup behavior of the final candidate on the device",
+      "expected": "The candidate starts on the device and reaches an interactive page",
+      "actual": "The candidate opened in the 真机调试 session with the 已连接 overlay; the bootstrap rendered without white screen or error prompt and the first navigation to the chunk probe page completed and started the run. Cold-start duration in milliseconds is not separately instrumented in this probe-only slice (recorded as a non-blocking defect), so no numeric cold-start value is claimed"
     }
   ],
   "artifacts": [
     {
       "path": "tests/evidence/fe-001/device-bootstrap-final.jpg",
       "sha256": "ed9804699d631e819cd50c81a090566986a01da529cc11d122209cea76e1b947"
+    },
+    {
+      "path": "tests/evidence/fe-001/chunk-device-results.png",
+      "sha256": "1991b7878c0337367053efca9c0f3dae31b35d8e7bbb45c7814591d8d80447e5"
     }
   ],
-  "defects": [],
+  "defects": [
+    {
+      "description": "Cold-start duration is not instrumented in milliseconds for this probe-only slice; startup was observed end-to-end on the device (bootstrap rendered without white screen, first navigation and probe run completed) but no numeric cold-start metric is claimed.",
+      "blocking": false
+    }
+  ],
   "unverified": []
 }
