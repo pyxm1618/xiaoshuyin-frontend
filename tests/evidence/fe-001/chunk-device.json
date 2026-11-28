@@ -1,0 +1,106 @@
+{
+  "type": "device",
+  "result": "PASS",
+  "reference": "T012 real-device chunked streaming probe of the final FE-001 candidate through the isolated wx.request probe page (enableChunked/onChunkReceived, observation only) on an actual iPhone under WeChat DevTools 真机调试 over LAN, against the Owner-approved existing isolated probe server timed stream /chunks plus the /buffered control: 5/5 PASS covering multiple chunks arriving before completion with relative timestamps and bytes, buffered full-response contrast, mid-stream cancellation, background switch and network switch. The accepted run matches the retained device screenshot and the server-side request log. No production streaming parser, AI run recovery or business rendering was implemented.",
+  "base": "06f881279bde1bf8085ea1c00b0875d737558ec6",
+  "candidateFiles": {
+    "apps/miniprogram/app.json": "c05bc296db42c1ec69c3531ce14b9368cfdedc62438bf5caea5f6a1426aa0d52",
+    "apps/miniprogram/app.ts": "5e47bf9e71d377293a99f2756125b091616eeae5959cef303c7235e6b9f3c959",
+    "apps/miniprogram/app.wxss": "4ca491160acf0d0aabebe24fe9e66d92b4a2b4e347b0e9a76a0b41c703271631",
+    "apps/miniprogram/pages/bootstrap/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/pages/bootstrap/index.ts": "0608494252b5cdd2d48f5dc87f6b528afe222f4297d4187a3d1df8b5d3d7ddd2",
+    "apps/miniprogram/pages/bootstrap/index.wxml": "82aad32f57fcc6ba7f7ad3950f8e34a58f8471108bb4fceeb17059cdac85dd22",
+    "apps/miniprogram/pages/bootstrap/index.wxss": "5f5ebf2ae3e9a86d60c98d71a140b277f9b3e7a713a907cb20c8eb4e8d05c810",
+    "apps/miniprogram/platform.d.ts": "9228177e505513857982437484448f9aaf6dce3f1433a71071b9e55eeef4d567",
+    "apps/miniprogram/probes/backend/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/backend/index.ts": "9c64b6f3da4b680547f433563355b6e029e1f334359dfea3703761ec08fa206a",
+    "apps/miniprogram/probes/backend/index.wxml": "87529166c807b784b87bd65705e780f6ef3d7033df867d53d662d00a9105f8fa",
+    "apps/miniprogram/probes/backend/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/probes/chunk.ts": "376556a6c7d098db3e225c2e9afe7e33d2c55d34618906266af3330ee540c7de",
+    "apps/miniprogram/probes/chunks/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/chunks/index.ts": "aefef1c72468cbda734392475ef963efd7d296a48533ccbe2b37718582541c8d",
+    "apps/miniprogram/probes/chunks/index.wxml": "0e4b8c6c1768b1d551d343f8ba3f94413085d546fc68be829f38135be4037245",
+    "apps/miniprogram/probes/chunks/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/probes/lifecycle/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/lifecycle/index.ts": "fa79a0cff2e60df697ae96d7a450ba962ea2b960385c3635a87e456970955b15",
+    "apps/miniprogram/probes/lifecycle/index.wxml": "dc87d90d7922a9d314e7d8591a57fe534cdc80b5a7c3df25e8bbc354120080af",
+    "apps/miniprogram/probes/lifecycle/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/probes/runtime/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/runtime/index.ts": "bbc67f0a28f45851a3fe16d4a5e73bd1c88ea6e5a12598b4326cf31b0398aad5",
+    "apps/miniprogram/probes/runtime/index.wxml": "f9e31920b23d30881d9ef73edf5ef0c4fd393b8ac80b7a6dcd4a683ae2e2245c",
+    "apps/miniprogram/probes/runtime/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/transport/index.ts": "ba3b5e20f9a864636e43000fa6bb81f3e0f293fd6d35d52b59077d9be4b53c7a",
+    "apps/miniprogram/transport/lifecycle.ts": "9a8c249c75cd4752e67f5b543e94a24ccc290f498215de45a6054bbef73bcf7e",
+    "bun.lock": "8e29d23de8e791dd8725d03a1060cb931ffeafac0c8dec36faeead1850ab2dc2",
+    "package.json": "a82c9c1d93159bd3fedd72f7c36c7a18515407246cf80e5177f6dcd5f9fa20d0",
+    "project.config.json": "dda7e2104ef80e20c9ee1cd2aaa37f7ea27dafc13445401d7c704f25d7126504",
+    "tests/fe-001/contract.test.mjs": "1f281c4ed8b7c7f394b36eddae9172aac26089a932caa1b9486a510c97ac1324",
+    "tests/fe-001/contract.types.ts": "9887aa41d7eef39374bbb0a52d921aeda2b3d7fd11bf4c9aa69aa84629796512",
+    "tests/fe-001/lifecycle.test.mjs": "37743f26234f34aa91b7ae8a07e242efffd69915c2753c10100e92d9e25e12d8",
+    "tests/fe-001/probe-server.mjs": "663eafc9335f6b3f09408fe35389acef6c1ae7514d5037da4a90bc6aeff0b67f",
+    "tests/fe-001/probe.test.mjs": "d6be051caa95eb4608225db0036170f280e2833aec42c8a35c31ff41fcbd3074"
+  },
+  "design": [
+    {
+      "unit": "FE-ENGINEERING",
+      "selector": "请求、可靠性与隐私",
+      "sha256": "e1f3824acb9e5ca308fd0f403881c4ccbc0ad12731dad08458b0a2d042257184"
+    },
+    {
+      "unit": "FE-DELIVERY",
+      "selector": "Real-device Acceptance 记录设备/系统/微信/基础库/DevTools、构建、后端环境、操作、实际结果以及相关缺陷。",
+      "sha256": "814a070fcef93c110245328a8ae7bf3e394a0f352b86bbeb96783ca357bec8e7"
+    }
+  ],
+  "observedAt": "2026-11-28T12:14:04Z",
+  "environment": "Device: iPhone 16 (iPhone17,3), iOS 26.6.2, WeChat 8.0.80; runtime base library SDK 3.18.1 read in-app via wx.getAppBaseInfo().SDKVersion. Runtime path: WeChat DevTools cask 2.02.2609250 (app build 36.6.0) 真机调试 over LAN, not the Simulator. Probe server: Node 26.13.0 on macOS 26.6.2 arm64 listening on http://192.168.2.135:8791 (all interfaces), logging the peer address and User-Agent; phone peer 192.168.2.212, UA MicroMessenger/8.0.80 NetType/WIFI. AppID wx746a39363f67ae95. Isolated technical probe only: no backend, production service, real family data, or production credentials involved. Timed stream source: the existing isolated probe server endpoints /chunks (timed chunk stream) and /buffered (control) exactly as approved; no new service, no backend repository change and no AI provider call. The probe page ran in the actual phone session (the 真机调试 已连接 overlay is visible in the retained screenshot). The accepted run is the 20:13 local run from peer 192.168.2.212. Two earlier device attempts are not accepted: 11:50Z returned 4/5 from peer 192.168.2.115 because the network case stream stalled after Wi-Fi removal and was closed by the probe guard (cancelled=true), and 12:00Z returned 3/5 because the background and network switches were not performed within the prompts (hidden=false, maxGapMs=698). The retained server log excerpt covers only the accepted run.",
+  "operations": [
+    {
+      "action": "Run the timed /chunks stream (count=6, interval=400) on the phone",
+      "expected": "Multiple chunks arrive before the response completes, with byte counts and relative arrival times, and the request completes",
+      "actual": "PASS chunks=6 bytes=137 spanMs=2003 completed=true failed=false; server logged GET /chunks chunked count=6 interval=400 and closed at 6/6 at 12:13:20Z"
+    },
+    {
+      "action": "Run the /buffered control (count=6, interval=400)",
+      "expected": "The control is observed as one full response rather than multiple streamed chunks",
+      "actual": "PASS chunks=0 bytes=0 spanMs=0 dataLength=137 completed=true; server logged GET /buffered and the client observed a single complete 137-byte body"
+    },
+    {
+      "action": "Abort the mid-stream case 1200 ms into a count=20 stream",
+      "expected": "The client abort ends the stream before completion with fewer chunks than requested",
+      "actual": "PASS chunks=2 cancelled=true completed=false failed=false; server logged the timed stream closed at 2/20"
+    },
+    {
+      "action": "Place the app in the background for about 3 seconds during a count=40 stream, then return",
+      "expected": "onHide/onShow are recorded around the switch and chunks keep arriving before and after it",
+      "actual": "PASS hidden=true resumed=true hiddenMs=2341 chunks=40 beforeHide=5 afterResume=31 spanMs=19545 completed=true cancelled=false failed=false"
+    },
+    {
+      "action": "Turn Wi-Fi off for about 3 seconds during a count=40 stream, then turn it back on",
+      "expected": "The Wi-Fi removal produces a truthful, observable interruption (failure or an arrival gap of at least 1500 ms) and the recorded run is not described as uninterrupted streaming",
+      "actual": "PASS chunks=30 maxGapMs=6482 failed=false completed=true cancelled=false; the stream paused 6482 ms during the outage and resumed to completion after Wi-Fi returned"
+    },
+    {
+      "action": "Read the on-screen summary and upload it to the probe server",
+      "expected": "The phone shows 5/5 PASS with sdk/platform/model/baseUrl and the server observes the upload",
+      "actual": "Phone displayed passed=5 total=5 with sdk 3.18.1, platform ios, model iPhone 16<iPhone17,3>, baseUrl http://192.168.2.135:8791 and \"results upload sent\"; the server logged POST /results at 12:14:04Z from peer 192.168.2.212 with the same PROBE-RESULTS payload"
+    },
+    {
+      "action": "Capture a real-device screenshot of the accepted run",
+      "expected": "A screenshot of the same run is retained as acceptance media, with no credential or personal data",
+      "actual": "Screenshot at 20:14 local (1179x2556) shows all five PASS lines, the summary 5/5 and \"results upload sent\", with the 真机调试 已连接 overlay; only probe results and system status indicators are visible"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tests/evidence/fe-001/chunk-device-results.png",
+      "sha256": "1991b7878c0337367053efca9c0f3dae31b35d8e7bbb45c7814591d8d80447e5"
+    },
+    {
+      "path": "tests/evidence/fe-001/chunk-device-server.log",
+      "sha256": "aa7557f88b1d49351ac0cfca5822a69c98fce8e500e2c99e8502343f587dbe6f"
+    }
+  ],
+  "defects": [],
+  "unverified": []
+}

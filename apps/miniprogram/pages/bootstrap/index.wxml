@@ -2,3 +2,5 @@
 <view class="bootstrap-sdk">{{sdkVersion}}</view>
 <button class="bootstrap-probe" bindtap="onOpenProbe">runtime probe</button>
 <button class="bootstrap-probe" bindtap="onOpenLifecycle">lifecycle probe</button>
+<button class="bootstrap-probe" bindtap="onOpenBackend">backend probe</button>
+<button class="bootstrap-probe" bindtap="onOpenChunks">chunk probe</button>

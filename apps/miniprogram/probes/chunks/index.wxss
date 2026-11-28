@@ -1,0 +1,35 @@
+.probe {
+  padding: 24rpx;
+  font-size: 24rpx;
+}
+
+.probe-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+.probe-input {
+  border: 1rpx solid #999;
+  padding: 8rpx 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.probe-run {
+  margin-bottom: 16rpx;
+}
+
+.probe-line {
+  margin-bottom: 12rpx;
+  word-break: break-all;
+}
+
+.probe-label {
+  display: block;
+  color: #555;
+}
+
+.probe-value {
+  display: block;
+  white-space: pre-wrap;
+}

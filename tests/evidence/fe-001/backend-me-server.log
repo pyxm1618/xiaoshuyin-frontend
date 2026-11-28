@@ -1,0 +1,9 @@
+# FE-001 T010 sanitized backend request log (local isolated backend, commit 9c3a3c6d3e7c84aecf706f80a5329abf786e8e17)
+# Pino request-line fields only: method, url, host, requestId, statusCode. Authorization/cookie/user-agent are redacted by the backend logger and absent.
+# Phone run at epoch 1795855272 (2026-11-28T08:41:12Z): login 200, GET /api/v1/me with credential 200, without credential 401.
+{"level":30,"time":1795855272414,"pid":21555,"hostname":"Mac-Mini-M4.local","reqId":"req-7","req":{"method":"POST","url":"/api/v1/auth/wechat","host":"192.168.2.135:8788","requestId":"req-7"},"msg":"incoming request"}
+{"level":30,"time":1795855272514,"pid":21555,"hostname":"Mac-Mini-M4.local","reqId":"req-7","res":{"statusCode":200},"responseTime":94.87095799995586,"msg":"request completed"}
+{"level":30,"time":1795855272532,"pid":21555,"hostname":"Mac-Mini-M4.local","reqId":"req-8","req":{"method":"GET","url":"/api/v1/me","host":"192.168.2.135:8788","requestId":"req-8"},"msg":"incoming request"}
+{"level":30,"time":1795855272560,"pid":21555,"hostname":"Mac-Mini-M4.local","reqId":"req-8","res":{"statusCode":200},"responseTime":27.391084000002593,"msg":"request completed"}
+{"level":30,"time":1795855272576,"pid":21555,"hostname":"Mac-Mini-M4.local","reqId":"req-9","req":{"method":"GET","url":"/api/v1/me","host":"192.168.2.135:8788","requestId":"req-9"},"msg":"incoming request"}
+{"level":30,"time":1795855272578,"pid":21555,"hostname":"Mac-Mini-M4.local","reqId":"req-9","res":{"statusCode":401},"responseTime":1.9733749999431893,"msg":"request completed"}

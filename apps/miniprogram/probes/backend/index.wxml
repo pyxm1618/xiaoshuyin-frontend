@@ -1,0 +1,9 @@
+<view class="probe">
+  <view class="probe-title">FE-001 backend identity probe</view>
+  <input class="probe-input" value="{{baseUrl}}" placeholder="http://host:8788" bindinput="onBaseUrlInput" />
+  <button class="probe-run" bindtap="onRun" disabled="{{running}}">{{running ? 'running' : 'run backend probe'}}</button>
+  <view class="probe-line" wx:for="{{lines}}" wx:key="index">
+    <text class="probe-label">{{item.label}}</text>
+    <text class="probe-value">{{item.value}}</text>
+  </view>
+</view>

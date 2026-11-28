@@ -16,4 +16,12 @@ Page({
   onOpenLifecycle(): void {
     wx.navigateTo({ url: '/probes/lifecycle/index' });
   },
+
+  onOpenBackend(): void {
+    wx.navigateTo({ url: '/probes/backend/index' });
+  },
+
+  onOpenChunks(): void {
+    wx.navigateTo({ url: '/probes/chunks/index' });
+  },
 });
