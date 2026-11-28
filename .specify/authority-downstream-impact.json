@@ -1,25 +1,29 @@
 {
   "repository": "pyxm1618/xiaoshuyin-frontend",
-  "base": "2a8b328d854e0428238ed2fade734df759a063b8",
+  "base": "7e104c231178ee9bcdbaecf8b153e3779bb0cf0d",
   "authority": [
     [
-      "Docs/V1技术设计.md",
-      "afef9fcc4af41b6137e5020717135972a3d515fc",
-      "2885694c1833c9643797c0947a1b7e581ae2fb05"
+      "Docs/frontend/engineering/V1前端工程技术设计.md",
+      "8001da926e3d48cdbb1da57b0473efdaee3ce97c",
+      "41bde47f87c99569b93c37cbd57360378adb9aca"
     ],
     [
-      "Docs/总体技术架构.md",
-      "6b4630803f371faf6d93f27361070223d0f661a0",
-      "f2e1589e3f87d1970f5ce342887fc7d3bf95dee4"
+      "Docs/frontend/engineering/前后端合同与集成规范.md",
+      "2ace93f1b5e865492f8f459d7f9006270e0c6a06",
+      "05cba375d85e8d57a4a8a44683d66c361a9cd5f1"
     ]
   ],
   "specs": {
     "specs/001-fe-wechat-runtime-transport/spec.md": {
       "disposition": "converged",
-      "rationale": "对比真实上游 main 与旧 pinned commit：仅 V1 技术设计与总体技术架构修改，移除公共技术栈、依赖锁与合同流中的具体 openapi-fetch 绑定，授权各端工程 Authority 自主决定 HTTP 客户端/Transport，仍要求生成 TypeScript types 唯一来源、强类型无漂移、共同 API、安全和 §18.4 流式合同。其余七份 imported Authority 与两份 OpenAPI 生成合同的上游 blob 均与前端 main 相同。仅 FE-001 引用 ARCHITECTURE/V1-TECHNICAL；本次明确当前上游不再绑定库、前端自有 Authority 尚未修改、原冻结实现与真机验收义务保持、旧 BLOCKED 证据有效。正式替代选型、FR/AC/Plan/Tasks 执行门禁及旧类型兼容例外的定向修订另走前端工程 Authority 独立受控 PR；本次不授权恢复实现。无业务、体验、API、实现或治理代码变更；无需合同同步，无迁移，必要时经受审反向同步处理。",
-      "evidence": "实际 frontend main 2a8b328d854e0428238ed2fade734df759a063b8、backend main 1c5b64012c0b9c5b173d67eabc3acfaae9450f6c；上游 compare e8b1d490fc8dab5af6cffaf30a5651fc7f6304f7...1c5b64012c0b9c5b173d67eabc3acfaae9450f6c 两份文件逐项 diff 已读；前端及后端当前树核对 9 份 Authority（7 不变、2 变化）与 2 份 generated contract（均不变）。变更 Blob [[\"Docs/V1技术设计.md\",\"afef9fcc4af41b6137e5020717135972a3d515fc\",\"2885694c1833c9643797c0947a1b7e581ae2fb05\"],[\"Docs/总体技术架构.md\",\"6b4630803f371faf6d93f27361070223d0f661a0\",\"f2e1589e3f87d1970f5ce342887fc7d3bf95dee4\"]]。实际 FE-ENGINEERING blob 8001da926e3d48cdbb1da57b0473efdaee3ce97c 第10行仍绑定 openapi-fetch；governance.mjs 明确拒绝 imported sync 混入 frontend engineering Authority。历史 Developer head 8c72fcf231148623c1e6e027989f32692181413b，runtime-compatibility.json blob 6926f17c949b68d1de2ce9888e289b7325689b30，transport-decision.json blob 67b53b0e6ca35dd845a41b3b976aa38181b86767 均为 BLOCKED，已读取实际结果：DevTools npm 打包入口失败、CJS 未进预览包、真机空白，未验证 HTTP 语义；未执行替代方案。五份原规划摘要独立重算匹配，当前仅 spec.md 增加追溯和阻断记录并纠正 FR-007 的 Authority 归属；其余四份工件及 14 项未完成任务保持，真实验收不降低。",
+      "rationale": "本次前端工程 Authority（FE-ENGINEERING 与 FE-INTEGRATION）定向修订将小程序 HTTP 接入从已于 PR #21 解除上游强绑定的 openapi-fetch 正式收敛为“微信原生 wx.request + 最小薄强类型 Transport Adapter，直接消费 packages/generated/openapi.d.ts（同源 openapi.json 约束 HTTP 语义）”，同时允许 Owner 批准依据、工程 Authority 文本、下游影响评估、直接相关冻结规划修订、续期 Audit 1 与经实证的 tsconfig.json 修订在同一受控 PR 内收敛，并要求优先以真实联合编译证据撤销原 lib:[\"ES2020\",\"DOM\"] 与 skipLibCheck:true 临时例外。FE-001 是仓库中唯一引用 FE-ENGINEERING 与 FE-INTEGRATION 的 Spec，受影响必须收敛：Plan AI 1 已将 spec.md 收敛至新候选方案及验证边界；Plan AI 2 已独立收敛 plan.md、checklist.md、tasks.md、analyze.md，明确已具备的前置条件（PR #13 Ownership、PR #14 tsconfig include 范围、PR #15 Node/Vitest 治理分离），为新候选 T005/T006 指定独立原生 wx.request 普通 HTTP 真机兼容门槛与独立证据路径（wx-request-compatibility.json / wx-transport-decision.json），原样保留原 Developer Head 8c72fcf2 上的 openapi-fetch BLOCKED 历史记录，并在隔离工作区完成 TypeScript 5.9.3 + miniprogram-api-typings@5.3.1 + 生成合同 + 5 类负例的真实联合编译验证（tsc exit 0、Vitest 3/3 PASS），据此将目标 tsconfig.json（lib:[\"ES2020\"]、skipLibCheck:false）纳入收敛并续期 audit1.json。不改变 Kind: ENGINEERING、Business Semantics: NONE、Phase: NOT APPLICABLE、Step 4 Dependency: NONE，不降低任何原 FR-001–007 / AC-01–09 / T001–T014 验收义务。",
+      "evidence": "核验基线：Frontend Main 7e104c231178ee9bcdbaecf8b153e3779bb0cf0d（CI 46095504285 6/6 PASS）、Backend Main cfa75ca158c2ea823677033e07622e0f95202be1、Authority manifest 1c5b64012c0b9c5b173d67eabc3acfaae9450f6c（9/9 CURRENT）、Contract manifest 9a1589a88729be46eadf81279d8a1eb7628cf29b（2/2 CURRENT）、Developer Head 8c72fcf231148623c1e6e027989f32692181413b。独立重算 Plan AI 1 三文件精确 SHA-256：FE-ENGINEERING b5176fa3e9460f5efd30ead31fa1421518568167f0dd966e2445b1c006928a62 -> e1f3824acb9e5ca308fd0f403881c4ccbc0ad12731dad08458b0a2d042257184（blob 8001da926e3d48cdbb1da57b0473efdaee3ce97c -> 41bde47f87c99569b93c37cbd57360378adb9aca）；FE-INTEGRATION 8b21da566808171b34e18cfa9c35933759de218a0189b2b3dfce6fb7d34687f8 -> 512e44b5e2bb5d79864efce101098c8ac08d1fedfa0e5284966a1b5d95f967fd（blob 2ace93f1b5e865492f8f459d7f9006270e0c6a06 -> 05cba375d85e8d57a4a8a44683d66c361a9cd5f1）；spec.md 3ee21155974f6d52431bd77e60d1e57c0276ce1b3ef3e52e30b200628505a599 -> 29d1ab08e499520e2bec123e8119e5a576558e547160172309aa9235c2838d2f（blob 4e0d6db53920a31869ebba135daadc5f07df152e -> 0fc594b2150c0b2bc589e535bab9779660156682）。隔离联合编译验证：TypeScript 5.9.3 + miniprogram-api-typings@5.3.1 + Vitest 3.2.7，于 lib:[\"ES2020\"]、skipLibCheck:false 及保留全部严格选项下 tsc --noEmit exit 0（0 errors），5 类 @ts-expect-error 负例（Path/Method/Parameters/Body/Response Field）Vitest 3/3 PASS。最小文档同步 PR #22（093795406753ebb223ce89388439e4c8ebce475c，CI 46098030284 6/6 PASS）已就绪待 Owner 合并；Owner 对两份工程 Authority 的精确批准（.specify/engineering-authority-approval.json）待呈交取得。",
       "changedArtifacts": [
-        "specs/001-fe-wechat-runtime-transport/spec.md"
+        "specs/001-fe-wechat-runtime-transport/spec.md",
+        "specs/001-fe-wechat-runtime-transport/plan.md",
+        "specs/001-fe-wechat-runtime-transport/checklist.md",
+        "specs/001-fe-wechat-runtime-transport/tasks.md",
+        "specs/001-fe-wechat-runtime-transport/analyze.md"
       ]
     }
   }
