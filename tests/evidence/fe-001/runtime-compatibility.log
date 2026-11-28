@@ -1,0 +1,13 @@
+== build-npm 2026-11-26T12:25:31Z
+✔ build-npm
+
+{
+  "cost": 2158,
+  "warnings": [
+    "/Users/milushangdi/Projects/xiaoshuyin-frontend: No miniprogram_npm package was found, please check package.json -> dependencies."
+  ]
+}
+== preview 2026-11-26T12:25:33Z
+✔ Using AppID: wx746a39363f67ae95
+✔ preview
+│ TOTAL   │ '10.2 KB' │ 10458       │

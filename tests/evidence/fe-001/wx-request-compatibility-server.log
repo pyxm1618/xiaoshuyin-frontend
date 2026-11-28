@@ -1,0 +1,18 @@
+probe server listening on 8791
+http://192.168.2.135:8791
+http://192.168.2.130:8791
+http://198.18.0.1:8791
+http://169.254.98.46:8791
+2026-11-28T06:30:42.933Z GET /ok remote=192.168.2.135 ua=curl/8.7.1
+2026-11-28T06:35:02.783Z GET /ok remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:04.026Z GET /echo remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:05.275Z GET /unauthorized remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:06.501Z GET /missing remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:08.390Z GET /slow remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:11.418Z GET /slow remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:14.130Z GET /ok remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:14.755Z PATCH /method remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:14.758Z SERVER-OBSERVED PATCH /method {"probe":true} remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:15.378Z GET /observed remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T06:35:15.824Z POST /results remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+PROBE-RESULTS {"sdk":"3.18.1","platform":"ios","model":"iPhone 16<iPhone17,3>","baseUrl":"http://192.168.2.135:8791","passed":10,"total":10,"results":[{"name":"GET /ok","pass":true,"detail":"settled=1 status=200 callbacks=success|complete header=ok 1282ms"},{"name":"GET /echo","pass":true,"detail":"status=200 server saw method=GET header=fe-001 query={\"a\":\"1\",\"b\":\"two\"}"},{"name":"GET /unauthorized","pass":true,"detail":"settled=1 status=401 code=UNAUTHENTICATED callbacks=success|complete"},{"name":"GET /missing","pass":true,"detail":"settled=1 status=404 code=NOT_FOUND"},{"name":"network error","pass":true,"detail":"settled=1 fail=request:fail errcode:-312 cronet_error_code:-312 error_msg:net::ERR_UNSAFE_PORT callbacks=fail:request:fail errcode:-312 cronet_error_code:-312 error_msg:net::ERR_UNSAFE_PORT|complete lateSuccess=false"},{"name":"bounded timeout","pass":true,"detail":"settled=1 fail=request:fail timeout callbacks=fail:request:fail timeout|complete lateSuccess=false"},{"name":"explicit abort","pass":true,"detail":"settled=1 fail=request:fail abort callbacks=abort-called|fail:request:fail abort|complete lateSuccess=false lateFail=false"},{"name":"single settlement","pass":true,"detail":"settled=1 callbacks=success|complete"},{"name":"PATCH client callback","pass":true,"detail":"status=200 clientObserved=PATCH callbacks=success|complete fail=null"},{"name":"PATCH server observation","pass":true,"detail":"serverSawPatch=true observed=[{\"method\":\"GET\",\"path\":\"/observed\",\"query\":{},\"at\":\"2026-11-28T06:35:15.377Z\",\"probeHeader\":null,\"remote\":\"192.168.2.212\",\"userAgent\":\"Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 MicroMessenger/8.0.80(0x18005043) NetType/WIFI Language/zh_CN\"},{\"method\":\"SERVER-OBSERVED PATCH\",\"path\":\"/method\",\"query\":{},\"at\":\"2026-11-28T06:35:14."}]}

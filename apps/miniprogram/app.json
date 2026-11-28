@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "pages/bootstrap/index",
+    "probes/runtime/index",
+    "probes/lifecycle/index",
+    "probes/backend/index",
+    "probes/chunks/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "小树荫助手"
+  }
+}

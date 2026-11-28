@@ -1,0 +1,72 @@
+{
+  "type": "manual",
+  "result": "BLOCKED",
+  "reference": "T006 transport decision based on the T005 runtime compatibility findings: the frozen openapi-fetch 0.17.0 cannot be packaged or loaded by the WeChat DevTools toolchain, so formal transport implementation is stopped and a targeted technical Authority change is requested.",
+  "head": "3f3c9310f324e4d579b51945b15ace62ca5db232",
+  "base": "31cb32f02e8492942241b0b1aa2e00088bf978fa",
+  "candidateFiles": {
+    "apps/miniprogram/app.json": "175e550ea258a8dbd845023f13e98e0e714e827e61c278a252aaf6d1d8417e1b",
+    "apps/miniprogram/app.ts": "5e47bf9e71d377293a99f2756125b091616eeae5959cef303c7235e6b9f3c959",
+    "apps/miniprogram/app.wxss": "4ca491160acf0d0aabebe24fe9e66d92b4a2b4e347b0e9a76a0b41c703271631",
+    "apps/miniprogram/pages/bootstrap/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/pages/bootstrap/index.ts": "7dcd8e5dffb97edbdacfeddd93bed74a3352144bce44100e1ca3b170e6e5ff1d",
+    "apps/miniprogram/pages/bootstrap/index.wxml": "5623a7b36f64f2e183edc1bf1e5b518c9920bef80d4a8ac86d3a54a58bcd8601",
+    "apps/miniprogram/pages/bootstrap/index.wxss": "5f5ebf2ae3e9a86d60c98d71a140b277f9b3e7a713a907cb20c8eb4e8d05c810",
+    "apps/miniprogram/platform.d.ts": "9228177e505513857982437484448f9aaf6dce3f1433a71071b9e55eeef4d567",
+    "apps/miniprogram/probes/runtime/bridge.ts": "90502a7076fb38d0e650e628163c1637f3c9691ed73f354647e0ae49a8e5b37c",
+    "apps/miniprogram/probes/runtime/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/runtime/index.ts": "4fa11b0a4b6f5f0ae347db3f08a5ea189a8833fb291cb681de2199664e78b744",
+    "apps/miniprogram/probes/runtime/index.wxml": "76bdba5aaa997b80b7e6e43cf747368f1c8a2c41bd558442e3771a2e1e93c4cc",
+    "apps/miniprogram/probes/runtime/index.wxss": "00a6576cfa637fe243a74bf1049d1696681005a6c7e07c0010bdc3a39c5067b5",
+    "bun.lock": "20a21dcfa86803cc67b4213db89571cdc46b9eff8e267161a638337f3d8e12b1",
+    "package.json": "771f4845b550d80c22ca21da53178727903bb32f777c639ae51374bf623c2939",
+    "project.config.json": "4af5aae8170299b3a64f8cde6093c3286d0dc35a516cc182d3b77006a181bb3e",
+    "tests/fe-001/contract.test.mjs": "c02eb378de2a562a35f5ad9e4a717135d30c32b42fa560920f9350b1f0c88286",
+    "tests/fe-001/contract.types.ts": "5082c1ce55ab701e72a4fa41423b151fd2e6baaf69573e86025271478c693e8d",
+    "tests/fe-001/lifecycle.test.mjs": "5a81b6f25d2029b4fbf829c6d289521f928d9ee0a3719b2695061d4744daa1e5",
+    "tests/fe-001/probe-server.mjs": "92ad50320cad429d68a6c49682c51b2135b11ecfa8668e06588331e0ef7e4d89",
+    "tests/fe-001/probe.test.mjs": "d6be051caa95eb4608225db0036170f280e2833aec42c8a35c31ff41fcbd3074"
+  },
+  "design": [
+    {
+      "unit": "FE-ENGINEERING",
+      "selector": "微信开发者工具负责原生项目编译、预览与上传",
+      "sha256": "b5176fa3e9460f5efd30ead31fa1421518568167f0dd966e2445b1c006928a62"
+    }
+  ],
+  "observedAt": "2026-11-26T12:25:33Z",
+  "environment": "Decision derived from the T005 probe run on iPhone 16, iOS 26.6.2, WeChat 8.0.80, runtime SDK 3.18.1 with WeChat DevTools 2.02.2609250. Probe implementation head 3f3c931; base 31cb32f (post-admission main).",
+  "operations": [
+    {
+      "action": "Evaluate whether the frozen openapi-fetch build can reach the target device through the DevTools npm pipeline",
+      "expected": "A supported packaging route ships the exact library build to the device",
+      "actual": "FAIL: the DevTools npm build cannot resolve the package entry (dist/index.mjs unsupported) and produces no miniprogram_npm; the alternative hand-made CJS layout compiles but is absent from the 10,458 B preview package"
+    },
+    {
+      "action": "Evaluate the device behavior of the probe with the frozen library",
+      "expected": "The probe page loads and reports runtime observations",
+      "actual": "FAIL: the page renders blank because the library import fails before page registration"
+    },
+    {
+      "action": "Record the T006 decision without substituting an unapproved transport",
+      "expected": "Decision recorded as incompatible with a STOP for T007 onward and a targeted Authority change request",
+      "actual": "Recorded incompatible; formal transport not implemented; wx.request thin adapter remains the pre-identified candidate but requires Authority approval"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tests/evidence/fe-001/runtime-compatibility.log",
+      "sha256": "b583332295db5aeac7a94d02347c33bd85541c7f874921a1e98e88512d42443e"
+    }
+  ],
+  "defects": [
+    {
+      "description": "Frozen openapi-fetch 0.17.0 is incompatible with the WeChat DevTools packaging toolchain and cannot be loaded on the target runtime within the authorized scope.",
+      "blocking": true
+    }
+  ],
+  "unverified": [
+    "Device-level openapi-fetch semantics (Request/Response/Headers, 200/401, rejection, cancel) remain unverified because the library cannot be loaded on the target.",
+    "No replacement transport has been implemented or validated; any alternative requires a targeted technical Authority change first."
+  ]
+}

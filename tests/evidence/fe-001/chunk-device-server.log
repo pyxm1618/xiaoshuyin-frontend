@@ -1,0 +1,17 @@
+# FE-001 T012 chunked-stream probe server-side observation
+# Source: isolated probe server log (tests/fe-001/probe-server.mjs) on http://192.168.2.135:8791 (all interfaces), peer 192.168.2.212 (iPhone), UA MicroMessenger/8.0.80.
+# Accepted device run: 2026-11-28T12:13:17Z-12:14:04Z (local 20:13:17-20:14:04), uploaded 5/5 PASS; matches the retained device screenshot chunk-device-results.png (hiddenMs=2341, maxGapMs=6482).
+# Earlier device attempts (11:50Z 4/5 from peer 192.168.2.115; 12:00Z 3/5) are not accepted: their background/network cases did not record the required switch (hidden=false or no gap). This excerpt contains only the accepted run.
+2026-11-28T12:13:17.738Z GET /chunks remote=192.168.2.212 
+2026-11-28T12:13:20.143Z GET /chunks chunked count=6 interval=400 remote=192.168.2.212 
+2026-11-28T12:13:20.144Z GET /chunks chunked closed at 6/6 remote=192.168.2.212 
+2026-11-28T12:13:20.166Z GET /buffered remote=192.168.2.212 
+2026-11-28T12:13:22.664Z GET /chunks remote=192.168.2.212 
+2026-11-28T12:13:23.876Z GET /chunks chunked closed at 2/20 remote=192.168.2.212 
+2026-11-28T12:13:23.892Z GET /chunks remote=192.168.2.212 
+2026-11-28T12:13:43.931Z GET /chunks chunked count=40 interval=500 remote=192.168.2.212 
+2026-11-28T12:13:43.932Z GET /chunks chunked closed at 40/40 remote=192.168.2.212 
+2026-11-28T12:13:43.969Z GET /chunks remote=192.168.2.212 
+2026-11-28T12:14:04.008Z GET /chunks chunked count=40 interval=500 remote=192.168.2.212 
+2026-11-28T12:14:04.009Z GET /chunks chunked closed at 40/40 remote=192.168.2.212 
+2026-11-28T12:14:04.054Z POST /results remote=192.168.2.212 

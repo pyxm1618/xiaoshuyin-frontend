@@ -1,0 +1,32 @@
+probe server listening on 8791
+http://192.168.2.135:8791
+http://192.168.2.130:8791
+http://198.18.0.1:8791
+2026-11-28T08:13:44.671Z GET /probe-mode remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:44.689Z GET /api/v1/me remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:44.699Z GET /probe-mode remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:44.703Z GET /api/v1/me remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:44.714Z GET /probe-mode remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:44.718Z GET /api/v1/me remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:48.336Z GET /probe-mode remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:48.346Z GET /api/v1/me remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:51.951Z GET /probe-mode remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:51.960Z GET /api/v1/me remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:55.560Z GET /probe-mode remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:55.565Z GET /api/v1/me remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+2026-11-28T08:13:55.574Z POST /results remote=192.168.2.135 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHT
+PROBE-RESULTS {"sdk":"3.18.1","platform":"devtools","model":"iPhone 12/13 (Pro)","baseUrl":"http://192.168.2.135:8791","passed":4,"total":7,"results":[{"name":"transport data 200","pass":false,"detail":"kind=invalid status=- success=1 fail=0 abort=0"},{"name":"transport http 401","pass":false,"detail":"kind=invalid status=- code=- abort=0"},{"name":"transport network","pass":true,"detail":"kind=network success=0 fail=1"},{"name":"transport timeout + late success isolation","pass":true,"detail":"kind=timeout abort=1 lateSuccess=0 lateFail=1"},{"name":"owner end cancel + late success isolation","pass":true,"detail":"kind=cancelled ownerActive=false abort=1 lateSuccess=0 lateFail=1"},{"name":"timeout + late http error isolation","pass":true,"detail":"kind=timeout abort=1 lateSuccess=0 lateFail=1"},{"name":"single terminal settlement","pass":false,"detail":"kind=invalid success=1 fail=0 abort=0"}]}
+2026-11-28T08:17:11.999Z GET /probe-mode remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:12.018Z GET /api/v1/me remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:12.030Z GET /probe-mode remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:12.040Z GET /api/v1/me remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:12.060Z GET /probe-mode remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:12.067Z GET /api/v1/me remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:15.695Z GET /probe-mode remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:15.706Z GET /api/v1/me remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:19.339Z GET /probe-mode remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:19.359Z GET /api/v1/me remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:22.976Z GET /probe-mode remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:22.987Z GET /api/v1/me remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+2026-11-28T08:17:23.000Z POST /results remote=192.168.2.212 ua=Mozilla/5.0 (iPhone; CPU iPhone OS 26_6_2 like Mac OS X) AppleWebKit/605.1.15 (K
+PROBE-RESULTS {"sdk":"3.18.1","platform":"ios","model":"iPhone 16<iPhone17,3>","baseUrl":"http://192.168.2.135:8791","passed":7,"total":7,"results":[{"name":"transport data 200","pass":true,"detail":"kind=data status=200 success=1 fail=0 abort=0"},{"name":"transport http 401","pass":true,"detail":"kind=http status=401 code=UNAUTHENTICATED abort=0"},{"name":"transport network","pass":true,"detail":"kind=network success=0 fail=1"},{"name":"transport timeout + late success isolation","pass":true,"detail":"kind=timeout abort=1 lateSuccess=0 lateFail=1"},{"name":"owner end cancel + late success isolation","pass":true,"detail":"kind=cancelled ownerActive=false abort=1 lateSuccess=0 lateFail=1"},{"name":"timeout + late http error isolation","pass":true,"detail":"kind=timeout abort=1 lateSuccess=0 lateFail=1"},{"name":"single terminal settlement","pass":true,"detail":"kind=data success=1 fail=0 abort=0"}]}

@@ -1,0 +1,106 @@
+{
+  "type": "device",
+  "result": "PASS",
+  "reference": "T009 real-device lifecycle matrix of the final FE-001 candidate transport executed through the isolated lifecycle probe page on an actual iPhone under WeChat DevTools 真机调试 (LAN) against the existing isolated local probe server, with server-side peer/UA observation: 7/7 probe cases PASS covering transport data 200, HTTP 401 error typing, network failure, bounded timeout with late success isolation, owner-end cancellation with late success isolation, timeout with late HTTP error isolation, and single terminal settlement.",
+  "base": "06f881279bde1bf8085ea1c00b0875d737558ec6",
+  "candidateFiles": {
+    "apps/miniprogram/app.json": "c05bc296db42c1ec69c3531ce14b9368cfdedc62438bf5caea5f6a1426aa0d52",
+    "apps/miniprogram/app.ts": "5e47bf9e71d377293a99f2756125b091616eeae5959cef303c7235e6b9f3c959",
+    "apps/miniprogram/app.wxss": "4ca491160acf0d0aabebe24fe9e66d92b4a2b4e347b0e9a76a0b41c703271631",
+    "apps/miniprogram/pages/bootstrap/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/pages/bootstrap/index.ts": "0608494252b5cdd2d48f5dc87f6b528afe222f4297d4187a3d1df8b5d3d7ddd2",
+    "apps/miniprogram/pages/bootstrap/index.wxml": "82aad32f57fcc6ba7f7ad3950f8e34a58f8471108bb4fceeb17059cdac85dd22",
+    "apps/miniprogram/pages/bootstrap/index.wxss": "5f5ebf2ae3e9a86d60c98d71a140b277f9b3e7a713a907cb20c8eb4e8d05c810",
+    "apps/miniprogram/platform.d.ts": "9228177e505513857982437484448f9aaf6dce3f1433a71071b9e55eeef4d567",
+    "apps/miniprogram/probes/backend/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/backend/index.ts": "9c64b6f3da4b680547f433563355b6e029e1f334359dfea3703761ec08fa206a",
+    "apps/miniprogram/probes/backend/index.wxml": "87529166c807b784b87bd65705e780f6ef3d7033df867d53d662d00a9105f8fa",
+    "apps/miniprogram/probes/backend/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/probes/chunk.ts": "376556a6c7d098db3e225c2e9afe7e33d2c55d34618906266af3330ee540c7de",
+    "apps/miniprogram/probes/chunks/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/chunks/index.ts": "aefef1c72468cbda734392475ef963efd7d296a48533ccbe2b37718582541c8d",
+    "apps/miniprogram/probes/chunks/index.wxml": "0e4b8c6c1768b1d551d343f8ba3f94413085d546fc68be829f38135be4037245",
+    "apps/miniprogram/probes/chunks/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/probes/lifecycle/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/lifecycle/index.ts": "fa79a0cff2e60df697ae96d7a450ba962ea2b960385c3635a87e456970955b15",
+    "apps/miniprogram/probes/lifecycle/index.wxml": "dc87d90d7922a9d314e7d8591a57fe534cdc80b5a7c3df25e8bbc354120080af",
+    "apps/miniprogram/probes/lifecycle/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/probes/runtime/index.json": "e9855c008134217b13856fca019c551a06b64f00ced1a60e40de117f67f4ca8c",
+    "apps/miniprogram/probes/runtime/index.ts": "bbc67f0a28f45851a3fe16d4a5e73bd1c88ea6e5a12598b4326cf31b0398aad5",
+    "apps/miniprogram/probes/runtime/index.wxml": "f9e31920b23d30881d9ef73edf5ef0c4fd393b8ac80b7a6dcd4a683ae2e2245c",
+    "apps/miniprogram/probes/runtime/index.wxss": "bc95fb08cc0f3708932feb266d3f88281ecc8b18ff6483190766bdfa6d860429",
+    "apps/miniprogram/transport/index.ts": "ba3b5e20f9a864636e43000fa6bb81f3e0f293fd6d35d52b59077d9be4b53c7a",
+    "apps/miniprogram/transport/lifecycle.ts": "9a8c249c75cd4752e67f5b543e94a24ccc290f498215de45a6054bbef73bcf7e",
+    "bun.lock": "8e29d23de8e791dd8725d03a1060cb931ffeafac0c8dec36faeead1850ab2dc2",
+    "package.json": "a82c9c1d93159bd3fedd72f7c36c7a18515407246cf80e5177f6dcd5f9fa20d0",
+    "project.config.json": "dda7e2104ef80e20c9ee1cd2aaa37f7ea27dafc13445401d7c704f25d7126504",
+    "tests/fe-001/contract.test.mjs": "1f281c4ed8b7c7f394b36eddae9172aac26089a932caa1b9486a510c97ac1324",
+    "tests/fe-001/contract.types.ts": "9887aa41d7eef39374bbb0a52d921aeda2b3d7fd11bf4c9aa69aa84629796512",
+    "tests/fe-001/lifecycle.test.mjs": "37743f26234f34aa91b7ae8a07e242efffd69915c2753c10100e92d9e25e12d8",
+    "tests/fe-001/probe-server.mjs": "663eafc9335f6b3f09408fe35389acef6c1ae7514d5037da4a90bc6aeff0b67f",
+    "tests/fe-001/probe.test.mjs": "d6be051caa95eb4608225db0036170f280e2833aec42c8a35c31ff41fcbd3074"
+  },
+  "design": [
+    {
+      "unit": "FE-ENGINEERING",
+      "selector": "请求、可靠性与隐私",
+      "sha256": "e1f3824acb9e5ca308fd0f403881c4ccbc0ad12731dad08458b0a2d042257184"
+    }
+  ],
+  "observedAt": "2026-11-28T08:17:23Z",
+  "environment": "Device: iPhone 16 (iPhone17,3), iOS 26.6.2, WeChat 8.0.80; runtime base library SDK 3.18.1 read in-app via wx.getAppBaseInfo().SDKVersion. Runtime path: WeChat DevTools cask 2.02.2609250 (app build 36.6.0) 真机调试 over LAN, not the Simulator. Probe server: Node 26.13.0 on macOS 26.6.2 arm64 listening on http://192.168.2.135:8791 (all interfaces), logging the peer address and User-Agent; phone peer 192.168.2.212, UA MicroMessenger/8.0.80 NetType/WIFI. AppID wx746a39363f67ae95. Isolated technical probe only: no backend, production service, real family data, or production credentials involved. The lifecycle probe called the existing isolated probe endpoints only (/probe-mode, synthetic /api/v1/me with synthetic UUID account/person identities, /ok-style responses); the probe bearer token was a synthetic placeholder sent only to this local probe server and is redacted as \"Bearer <redacted>\" in the server log. The retained server log also contains an earlier IDE Simulator pre-run at 08:13 (platform=devtools, model iPhone 12/13 (Pro), passed 4/7) kept for traceability; it is NOT used as device evidence. Device acceptance below is the 08:17 run from peer 192.168.2.212.",
+  "operations": [
+    {
+      "action": "Open the lifecycle probe page on the phone and run the transport data 200 case",
+      "expected": "The typed transport returns kind=data with status 200 through the generated MeResponse contract, one success and no fail/abort",
+      "actual": "PASS kind=data status=200 success=1 fail=0 abort=0; the phone session (peer 192.168.2.212) requested /probe-mode then /api/v1/me"
+    },
+    {
+      "action": "Run the transport HTTP 401 case",
+      "expected": "A 401 is surfaced as kind=http with the generated UNAUTHENTICATED error code, not as data or a network failure",
+      "actual": "PASS kind=http status=401 code=UNAUTHENTICATED abort=0"
+    },
+    {
+      "action": "Run the transport network failure case",
+      "expected": "A connection-layer failure is classified as kind=network with no success settlement",
+      "actual": "PASS kind=network success=0 fail=1"
+    },
+    {
+      "action": "Run timeout with a delayed successful server response (probe-mode slow 2600 ms, timeout 700 ms, observation 2900 ms)",
+      "expected": "The bounded timeout settles first, the task aborts, and the late success after the timeout is suppressed",
+      "actual": "PASS kind=timeout abort=1 lateSuccess=0 lateFail=1; observation continued past the server delay"
+    },
+    {
+      "action": "Run owner-end cancellation with a delayed successful response (probe-mode slow 3200 ms, cancel at 300 ms, observation 3300 ms)",
+      "expected": "Owner cancellation ends the owner, aborts the task, and the late success writes no stale state",
+      "actual": "PASS kind=cancelled ownerActive=false abort=1 lateSuccess=0 lateFail=1"
+    },
+    {
+      "action": "Run timeout with a delayed HTTP error response (probe-mode slow-unauthorized 2600 ms, timeout 700 ms)",
+      "expected": "The timeout wins and the late HTTP 401 failure does not alter the settled result",
+      "actual": "PASS kind=timeout abort=1 lateSuccess=0 lateFail=1"
+    },
+    {
+      "action": "Run the single terminal settlement case",
+      "expected": "Exactly one terminal settlement is delivered; success and fail are not both applied",
+      "actual": "PASS kind=data success=1 fail=0 abort=0"
+    },
+    {
+      "action": "Read the on-screen summary and upload it to the probe server",
+      "expected": "The phone shows 7/7 PASS with platform/model/runtime details and the server observes the upload",
+      "actual": "Phone displayed passed=7 total=7 with sdk 3.18.1, platform ios, model iPhone 16<iPhone17,3>, baseUrl http://192.168.2.135:8791 and \"results upload sent\"; the server logged POST /results from peer 192.168.2.212 with UA MicroMessenger/8.0.80 and the same PROBE-RESULTS payload"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tests/evidence/fe-001/lifecycle-device-results.jpg",
+      "sha256": "1242c1dbef647a8daefe9db6ecf646a1bbb15989ac64ec0267ea429081f3533f"
+    },
+    {
+      "path": "tests/evidence/fe-001/lifecycle-device-server.log",
+      "sha256": "315b04663e4573c7d6ac19aa172a69e785a000317d187f06dd35adf70eafda36"
+    }
+  ],
+  "defects": [],
+  "unverified": []
+}
