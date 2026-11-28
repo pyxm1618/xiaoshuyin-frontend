@@ -19,7 +19,7 @@ Change Binding 的 `kind` 使用 `implementation`，若涉及共享工程文件�
 
 ## 静态验收配置
 
-TypeScript 从仓库根 `tsconfig.json` 执行检查。配置直接声明检查范围和编译标准，禁止通过 `extends` 或 project references 委托配置。新增源目录、平台类型或调整编译选项时，先以独立、仅修改 `tsconfig.json` 的治理 PR 提交并完成审查。审查核对代码覆盖范围和检查标准。后续 Slice 从已合入该配置的基线开展实现。
+TypeScript 从仓库根 `tsconfig.json` 执行检查。配置直接声明检查范围和编译标准，禁止通过 `extends` 或 project references 委托配置。新增源目录、平台类型或调整编译选项时，可通过仅修改 `tsconfig.json` 的独立治理 PR 提交，也可按现行门禁与直接相关的前端工程 Authority、`specs/<feature>/` 规划工件、Authority 下游影响记录及工程批准记录同 PR 共同交付，不得混入实现代码或无关治理改动。审查核对代码覆盖范围和检查标准。后续 Slice 从已合入该配置的基线开展实现。
 
 ## Authority 下游影响记录
 
