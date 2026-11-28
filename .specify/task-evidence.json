@@ -1,0 +1,42 @@
+{
+  "repository": "pyxm1618/xiaoshuyin-frontend",
+  "feature": "001-fe-wechat-runtime-transport",
+  "base": "06f881279bde1bf8085ea1c00b0875d737558ec6",
+  "binding": "d345b095eb636c82e9bc7d6b0da655cdbfa8a64e1a137c8b2885b866370b72e7",
+  "tasks": {
+    "T003": {
+      "taskDigest": "cbf77b0a4361d911b1ac2d02691deab8ef32d601506fd943057da3ac85904d3d",
+      "files": [
+        "apps/miniprogram/app.json",
+        "apps/miniprogram/app.ts",
+        "apps/miniprogram/app.wxss",
+        "apps/miniprogram/pages/bootstrap/index.json",
+        "apps/miniprogram/pages/bootstrap/index.ts",
+        "apps/miniprogram/pages/bootstrap/index.wxml",
+        "apps/miniprogram/pages/bootstrap/index.wxss",
+        "apps/miniprogram/platform.d.ts",
+        "apps/miniprogram/probes/runtime/index.json",
+        "apps/miniprogram/probes/runtime/index.ts",
+        "apps/miniprogram/probes/runtime/index.wxml",
+        "apps/miniprogram/probes/runtime/index.wxss",
+        "bun.lock",
+        "package.json",
+        "project.config.json",
+        "tests/evidence/fe-001/device-preview.jpg",
+        "tests/evidence/fe-001/final-device.json",
+        "tests/evidence/fe-001/native-build.json",
+        "tests/evidence/fe-001/native-build.log",
+        "tests/evidence/fe-001/runtime-compatibility.json",
+        "tests/evidence/fe-001/runtime-compatibility.log",
+        "tests/evidence/fe-001/transport-decision.json",
+        "tests/fe-001/contract.test.mjs",
+        "tests/fe-001/contract.types.ts",
+        "tests/fe-001/lifecycle.test.mjs",
+        "tests/fe-001/probe-server.mjs",
+        "tests/fe-001/probe.test.mjs",
+        "tests/evidence/fe-001/simulator-bootstrap.png",
+        "tests/evidence/fe-001/simulator-probe.png"
+      ]
+    }
+  }
+}

@@ -1,5 +1,15 @@
+# FE-001 T003 native compile + Simulator observation (candidate base 06f881279bde1bf8085ea1c00b0875d737558ec6)
+# toolchain: node v26.13.0, bun 1.4.4, typescript 5.9.3, vitest 3.2.7, miniprogram-api-typings 5.3.1
+
+$ cli islogin
+✔ IDE server has started, listening on http://127.0.0.1:32562
+{"login":true}
+✔ islogin
+
+$ cli preview --project <repo> --qr-format terminal
 - initialize
 
+(Use `Electron --trace-deprecation ...` to show where the warning was created)
 ✔ IDE server has started, listening on http://127.0.0.1:32562
 - preparing
 - Fetching AppID () permissions
@@ -7,10 +17,24 @@
 - Preview
 ✔ preview
 
-┌─────────┬─────────┬─────────────┐
-│ (index) │ size    │ size (Byte) │
-├─────────┼─────────┼─────────────┤
-│ TOTAL   │ '370 B' │ 370         │
-└─────────┴─────────┴─────────────┘
+┌─────────┬───────────┬─────────────┐
+│ (index) │ size      │ size (Byte) │
+├─────────┼───────────┼─────────────┤
+│ TOTAL   │ '12.5 KB' │ 12825       │
+└─────────┴───────────┴─────────────┘
 
 
+
+$ cli auto --project <repo> --auto-port 9420 --trust-project
+{"autoPort": 9420, "requestedAutoPort": 9420}
+
+# miniprogram-automator connect ws://127.0.0.1:9420
+SYSTEM {"platform":"devtools","model":"iPhone 12/13 (Pro)","system":"iOS 10.0.1","SDKVersion":"3.18.1","version":"8.0.5","brand":"devtools"}
+BOOTSTRAP {"entry":"FE-001 bootstrap","sdkVersion":"SDK 3.18.1"}
+PROBE {"path":"probes/runtime/index","data":{"baseUrl":"","running":false,"lines":[{"label":"runtime","value":"SDK 3.18.1 / devtools / iPhone 12/13 (Pro)"},{"label":"wechat","value":"version 8.0.5"}]}}
+STACK ["probes/runtime/index"]
+
+# simulator screenshots captured by automator: simulator-bootstrap.png, simulator-probe.png
+# observed CLI limitation (non-blocking): cli preview with --qr-output <path> fails on this build with
+# code 10 "二维码输出路径无效或不存在" for image and terminal formats; omitting --qr-output prints the terminal
+# QR and produces the preview package, so compile and preview are unaffected.

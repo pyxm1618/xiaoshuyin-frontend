@@ -1,48 +1,177 @@
-import createClient from 'openapi-fetch';
-import {
-  ProbeAbortController,
-  createWxFetch,
-  describeRuntimeGlobals,
-  installProbeGlobals,
-} from './bridge';
-
-interface ProbeOperation {
-  get: {
-    responses: {
-      200: { content: { 'application/json': { probe?: boolean } } };
-      401: { content: { 'application/json': { code?: string; message?: string } } };
-    };
-  };
-}
-
-type ProbePaths = { [path: string]: ProbeOperation };
-
+// T005 isolated native wx.request probe. It deliberately does not import the
+// transport adapter under test so the platform gate stays independent of T007.
 interface Line {
   label: string;
   value: string;
 }
 
-interface RuntimeData {
+interface ProbeData {
   baseUrl: string;
   running: boolean;
   lines: Line[];
 }
 
-function errorText(error: unknown): string {
-  if (error instanceof Error) return `${error.name}: ${error.message}`;
-  return String(error);
+interface Outcome {
+  name: string;
+  settled: number;
+  callbacks: string[];
+  status: number | null;
+  bodyText: string;
+  errMsg: string | null;
+  lateSuccess: boolean;
+  lateFail: boolean;
+  durationMs: number;
+}
+
+interface CaseResult {
+  name: string;
+  pass: boolean;
+  detail: string;
+}
+
+function text(value: unknown): string {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    return String(value);
+  }
+}
+
+function field(value: unknown, key: string): unknown {
+  if (typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, key)) {
+    return (value as Record<string, unknown>)[key];
+  }
+  return undefined;
+}
+
+function bodyText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  return text(value);
+}
+
+function asObject(value: unknown): Record<string, unknown> | undefined {
+  if (typeof value === 'object' && value !== null) return value as Record<string, unknown>;
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (typeof parsed === 'object' && parsed !== null) return parsed as Record<string, unknown>;
+    } catch (error) {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function probeRequest(
+  name: string,
+  options: WechatMiniprogram.RequestOption,
+  abortAfterMs?: number,
+  observeMs?: number,
+): Promise<Outcome> {
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const callbacks: string[] = [];
+    const observation = observeMs === undefined ? 1200 : observeMs;
+    let settled = 0;
+    let status: number | null = null;
+    let body: unknown = undefined;
+    let errMsg: string | null = null;
+    let lateSuccess = false;
+    let lateFail = false;
+    let finished = false;
+
+    function finish(): void {
+      if (finished) return;
+      finished = true;
+      setTimeout(() => {
+        resolve({
+          name,
+          settled,
+          callbacks,
+          status,
+          bodyText: bodyText(body),
+          errMsg,
+          lateSuccess,
+          lateFail,
+          durationMs: Date.now() - started,
+        });
+      }, observation);
+    }
+
+    const requestInit: WechatMiniprogram.RequestOption = {
+      url: options.url,
+      responseType: 'text',
+      success(result: WechatMiniprogram.RequestSuccessCallbackResult) {
+        callbacks.push('success');
+        if (settled > 0) {
+          lateSuccess = true;
+          callbacks.push('late-success');
+          return;
+        }
+        settled += 1;
+        status = result.statusCode;
+        body = result.data;
+        finish();
+      },
+      fail(error: WechatMiniprogram.GeneralCallbackResult) {
+        callbacks.push('fail:' + error.errMsg);
+        if (settled > 0) {
+          lateFail = true;
+          callbacks.push('late-fail');
+          return;
+        }
+        settled += 1;
+        errMsg = error.errMsg;
+        finish();
+      },
+      complete() {
+        callbacks.push('complete');
+        if (settled === 0) callbacks.push('complete-before-terminal');
+      },
+    };
+    if (options.method !== undefined) requestInit.method = options.method;
+    if (options.header !== undefined) requestInit.header = options.header;
+    if (options.data !== undefined) requestInit.data = options.data;
+    if (options.timeout !== undefined) requestInit.timeout = options.timeout;
+
+    const task = wx.request(requestInit);
+
+    if (abortAfterMs !== undefined) {
+      setTimeout(() => {
+        callbacks.push('abort-called');
+        task.abort();
+      }, abortAfterMs);
+    }
+  });
+}
+
+function payloadOf(outcome: Outcome): Record<string, unknown> {
+  const parsed = asObject(outcome.bodyText);
+  const payload = parsed === undefined ? undefined : asObject(parsed.payload);
+  return payload === undefined ? {} : payload;
+}
+
+function headerOf(outcome: Outcome): Record<string, unknown> {
+  const parsed = asObject(outcome.bodyText);
+  const header = parsed === undefined ? undefined : asObject(parsed.header);
+  return header === undefined ? {} : header;
 }
 
 Page({
   data: {
-    baseUrl: 'http://192.168.2.135:8791',
+    baseUrl: '',
     running: false,
     lines: [],
-  } as RuntimeData,
+  } as ProbeData,
 
   onLoad(): void {
-    const info = wx.getAppBaseInfo();
-    this.push('runtime', `SDK ${info.SDKVersion} / ${wx.getDeviceInfo().platform}`);
+    const base = wx.getAppBaseInfo();
+    const device = wx.getDeviceInfo();
+    const lines: Line[] = [];
+    lines.push({ label: 'runtime', value: 'SDK ' + base.SDKVersion + ' / ' + device.platform + ' / ' + device.model });
+    lines.push({ label: 'wechat', value: 'version ' + base.version });
+    this.setData({ lines });
   },
 
   onBaseUrlInput(event: WechatMiniprogram.Input): void {
@@ -53,70 +182,139 @@ Page({
     this.setData({ lines: this.data.lines.concat([{ label, value }]) });
   },
 
-  async onRun(): Promise<void> {
-    if (this.data.running) return;
-    this.setData({ running: true, lines: [] });
-    try {
-      await this.runProbe();
-    } finally {
-      this.setData({ running: false });
-      this.push('done', 'probe finished');
-    }
+  record(name: string, pass: boolean, detail: string): CaseResult {
+    this.push(name, (pass ? 'PASS ' : 'FAIL ') + detail);
+    return { name, pass, detail };
   },
 
-  async runProbe(): Promise<void> {
-    const globals = describeRuntimeGlobals();
-    this.push('native globals', JSON.stringify(globals.native));
-    installProbeGlobals(globals);
-    this.push('injected globals', globals.injected.length ? globals.injected.join(', ') : 'none');
-
-    const baseUrl = this.data.baseUrl.trim().replace(/\/+$/, '');
-    if (!baseUrl) {
+  async onRun(): Promise<void> {
+    if (this.data.running) return;
+    const base = this.data.baseUrl.trim().replace(/\/+$/, '');
+    if (!base) {
       this.push('FAIL', 'base URL is empty');
       return;
     }
-
-    // The wx bridge satisfies openapi-fetch's Fetch contract only for this probe.
-    const client = createClient<ProbePaths>({
-      baseUrl,
-      fetch: createWxFetch() as unknown as typeof fetch,
+    this.setData({ running: true, lines: this.data.lines.slice(0, 2) });
+    const results: CaseResult[] = [];
+    try {
+      const ordinary = await this.runOrdinary(base);
+      results.push(...ordinary);
+      const failures = await this.runFailureModes(base);
+      results.push(...failures);
+      const patch = await this.runPatch(base);
+      results.push(...patch);
+    } catch (error) {
+      this.push('probe error', String(error));
+    }
+    const passed = results.filter((result) => result.pass).length;
+    const summary = {
+      sdk: wx.getAppBaseInfo().SDKVersion,
+      platform: wx.getDeviceInfo().platform,
+      model: wx.getDeviceInfo().model,
+      baseUrl: base,
+      passed,
+      total: results.length,
+      results,
+    };
+    this.push('summary', text(summary));
+    this.setData({ running: false });
+    wx.request({
+      url: base + '/results',
+      method: 'POST',
+      header: { 'content-type': 'application/json' },
+      data: text(summary),
+      success: () => this.push('results upload', 'sent'),
+      fail: (error) => this.push('results upload', 'failed ' + error.errMsg),
     });
+  },
 
-    try {
-      const ok = await client.GET('/ok');
-      this.push('GET /ok', `status ${ok.response.status}, data ${JSON.stringify(ok.data)}`);
-      this.push('GET /ok verdict', ok.response.status === 200 && !!ok.data && ok.data.probe === true ? 'PASS' : 'FAIL');
-    } catch (error) {
-      this.push('GET /ok', `FAIL ${errorText(error)}`);
-    }
+  async runOrdinary(base: string): Promise<CaseResult[]> {
+    const results: CaseResult[] = [];
 
-    try {
-      const unauthorized = await client.GET('/unauthorized');
-      this.push('GET /unauthorized', `status ${unauthorized.response.status}, error ${JSON.stringify(unauthorized.error)}`);
-      this.push('GET /unauthorized verdict',
-        unauthorized.response.status === 401 && !!unauthorized.error && unauthorized.error.code === 'UNAUTHENTICATED' ? 'PASS' : 'FAIL');
-    } catch (error) {
-      this.push('GET /unauthorized', `FAIL ${errorText(error)}`);
-    }
+    const ok = await probeRequest('GET /ok', {
+      url: base + '/ok',
+      method: 'GET',
+      header: { 'X-Probe-Header': 'fe-001' },
+    });
+    const okPayload = payloadOf(ok);
+    const okHeader = headerOf(ok);
+    results.push(this.record('GET /ok', ok.settled === 1 && ok.status === 200 && okPayload.probe === true && okHeader['x-probe'] === 'ok',
+      'settled=' + ok.settled + ' status=' + text(ok.status) + ' callbacks=' + ok.callbacks.join('|') + ' header=' + text(okHeader['x-probe']) + ' ' + ok.durationMs + 'ms'));
 
-    try {
-      await client.GET('/ok', { baseUrl: 'http://127.0.0.1:1' });
-      this.push('network rejection', 'FAIL resolved unexpectedly');
-    } catch (error) {
-      this.push('network rejection', `PASS rejected: ${errorText(error)}`);
-    }
+    const echo = await probeRequest('GET /echo', {
+      url: base + '/echo?a=1&b=two',
+      method: 'GET',
+      header: { 'X-Probe-Header': 'fe-001' },
+    });
+    const echoPayload = payloadOf(echo);
+    results.push(this.record('GET /echo', echo.status === 200 && echoPayload.method === 'GET' &&
+      echoPayload.probeHeader === 'fe-001' && text(field(echoPayload.query, 'a')) === '1' && text(field(echoPayload.query, 'b')) === 'two',
+      'status=' + text(echo.status) + ' server saw method=' + text(echoPayload.method) + ' header=' + text(echoPayload.probeHeader) + ' query=' + text(echoPayload.query)));
 
-    try {
-      const controller = new ProbeAbortController();
-      // ProbeAbortSignal is the platform boundary; openapi-fetch types only the DOM signal.
-      const signal = controller.signal as unknown as AbortSignal;
-      const pending = client.GET('/slow', { signal });
-      setTimeout(() => controller.abort(), 300);
-      await pending;
-      this.push('cancel', 'FAIL resolved despite abort');
-    } catch (error) {
-      const text = errorText(error);
-      this.push('cancel', text.indexOf('AbortError') >= 0 ? `PASS rejected: ${text}` : `FAIL ${text}`);
+    const unauthorized = await probeRequest('GET /unauthorized', { url: base + '/unauthorized', method: 'GET' });
+    const unauthorizedPayload = payloadOf(unauthorized);
+    results.push(this.record('GET /unauthorized', unauthorized.settled === 1 && unauthorized.status === 401 && unauthorizedPayload.code === 'UNAUTHENTICATED',
+      'settled=' + unauthorized.settled + ' status=' + text(unauthorized.status) + ' code=' + text(unauthorizedPayload.code) + ' callbacks=' + unauthorized.callbacks.join('|')));
+
+    const missing = await probeRequest('GET /missing', { url: base + '/missing', method: 'GET' });
+    const missingPayload = payloadOf(missing);
+    results.push(this.record('GET /missing', missing.settled === 1 && missing.status === 404 && missingPayload.code === 'NOT_FOUND',
+      'settled=' + missing.settled + ' status=' + text(missing.status) + ' code=' + text(missingPayload.code)));
+
+    return results;
+  },
+
+  async runFailureModes(base: string): Promise<CaseResult[]> {
+    const results: CaseResult[] = [];
+
+    const network = await probeRequest('GET refused', { url: 'http://127.0.0.1:1/ok', method: 'GET' }, undefined, 300);
+    results.push(this.record('network error', network.settled === 1 && network.status === null && network.errMsg !== null && !network.lateSuccess,
+      'settled=' + network.settled + ' fail=' + text(network.errMsg) + ' callbacks=' + network.callbacks.join('|') + ' lateSuccess=' + text(network.lateSuccess)));
+
+    const timeout = await probeRequest('GET /slow timeout', { url: base + '/slow?ms=2200', method: 'GET', timeout: 800 }, undefined, 2200);
+    results.push(this.record('bounded timeout', timeout.settled === 1 && timeout.status === null &&
+      timeout.errMsg !== null && timeout.errMsg.toLowerCase().indexOf('timeout') >= 0 &&
+      timeout.callbacks.indexOf('complete') >= 0 && !timeout.lateSuccess,
+      'settled=' + timeout.settled + ' fail=' + text(timeout.errMsg) + ' callbacks=' + timeout.callbacks.join('|') + ' lateSuccess=' + text(timeout.lateSuccess)));
+
+    const abort = await probeRequest('GET /slow abort', { url: base + '/slow?ms=2200', method: 'GET' }, 300, 2400);
+    results.push(this.record('explicit abort', abort.settled === 1 && abort.status === null && abort.errMsg !== null &&
+      abort.errMsg.toLowerCase().indexOf('abort') >= 0 && abort.callbacks.indexOf('complete') >= 0 && !abort.lateSuccess,
+      'settled=' + abort.settled + ' fail=' + text(abort.errMsg) + ' callbacks=' + abort.callbacks.join('|') + ' lateSuccess=' + text(abort.lateSuccess) + ' lateFail=' + text(abort.lateFail)));
+
+    const multi = await probeRequest('GET /ok settlement', { url: base + '/ok', method: 'GET' }, undefined, 600);
+    results.push(this.record('single settlement', multi.settled === 1 && multi.callbacks.filter((name) => name === 'success' || name === 'fail').length === 1,
+      'settled=' + multi.settled + ' callbacks=' + multi.callbacks.join('|')));
+
+    return results;
+  },
+
+  async runPatch(base: string): Promise<CaseResult[]> {
+    const results: CaseResult[] = [];
+    // Official miniprogram-api-typings 5.3.1 omits PATCH from RequestOption.method.
+    // This isolated diagnostic cast exists only in the T005 probe, never in the formal transport.
+    const patchMethod = 'PATCH' as unknown as NonNullable<WechatMiniprogram.RequestOption['method']>;
+    const patch = await probeRequest('PATCH /method', {
+      url: base + '/method',
+      method: patchMethod,
+      header: { 'content-type': 'application/json' },
+      data: '{"probe":true}',
+    }, undefined, 600);
+    const patchPayload = payloadOf(patch);
+    results.push(this.record('PATCH client callback', patch.status === 200 && patchPayload.observedMethod === 'PATCH',
+      'status=' + text(patch.status) + ' clientObserved=' + text(patchPayload.observedMethod) + ' callbacks=' + patch.callbacks.join('|') + ' fail=' + text(patch.errMsg)));
+
+    const observed = await probeRequest('GET /observed', { url: base + '/observed', method: 'GET' }, undefined, 400);
+    const entries = payloadOf(observed).observed;
+    let serverSawPatch = false;
+    if (Array.isArray(entries)) {
+      for (let i = 0; i < entries.length; i += 1) {
+        const entry: unknown = entries[i];
+        if (text(field(entry, 'method')) === 'SERVER-OBSERVED PATCH' && text(field(entry, 'path')) === '/method') serverSawPatch = true;
+      }
     }
+    results.push(this.record('PATCH server observation', serverSawPatch,
+      'serverSawPatch=' + text(serverSawPatch) + ' observed=' + text(entries).slice(0, 400)));
+    return results;
   },
 });

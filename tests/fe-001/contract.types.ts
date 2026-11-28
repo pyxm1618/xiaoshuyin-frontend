@@ -1,7 +1,7 @@
-import createClient from 'openapi-fetch';
-import type { components, paths } from '../../packages/generated/openapi';
+import type { components, operations, paths } from '../../packages/generated/openapi';
+import type { Transport } from '../../apps/miniprogram/transport/index';
 
-const client = createClient<paths>({ baseUrl: 'https://api.test.invalid' });
+declare const transport: Transport;
 
 function acceptsMe(value: components['schemas']['MeResponse']): void {
   void value;
@@ -11,12 +11,12 @@ function acceptsError(value: components['schemas']['Error']): void {
   void value;
 }
 
-async function positiveContract(): Promise<void> {
-  const { data, error, response } = await client.GET('/api/v1/me');
-  if (data !== undefined) acceptsMe(data);
-  if (error !== undefined) acceptsError(error);
-  const httpStatus: number = response.status;
-  void httpStatus;
+function acceptsCase(value: components['schemas']['CaseResponse']): void {
+  void value;
+}
+
+function acceptsString(value: string | undefined): void {
+  void value;
 }
 
 type Expect<T extends true> = T;
@@ -25,25 +25,50 @@ type Equal<Left, Right> = (<T>() => T extends Left ? 1 : 2) extends <T>() => T e
   : false;
 type MeData = paths['/api/v1/me']['get']['responses'][200]['content']['application/json'];
 type MeDataIsSchema = Expect<Equal<MeData, components['schemas']['MeResponse']>>;
+type MeOperationIsGetMe = Expect<Equal<paths['/api/v1/me']['get'], operations['getMe']>>;
+
+declare const createCaseBody: components['schemas']['CreateCaseRequest'];
+declare const idempotencyKey: string;
+
+async function positiveContract(): Promise<void> {
+  const result = await transport.request('/api/v1/me', 'get');
+  if (result.kind === 'data') {
+    acceptsMe(result.data);
+    const status: 200 = result.status;
+    void status;
+  } else if (result.kind === 'http') {
+    acceptsError(result.error);
+    const status: 401 = result.status;
+    void status;
+  }
+
+  const created = await transport.request('/api/v1/cases', 'post', {
+    header: { 'Idempotency-Key': idempotencyKey },
+    body: createCaseBody,
+  });
+  if (created.kind === 'data') {
+    acceptsCase(created.data);
+  }
+}
 
 async function negativeContract(): Promise<void> {
   // @ts-expect-error the path is absent from the frozen contract
-  await client.GET('/api/v1/unknown');
-  // @ts-expect-error /api/v1/me declares no POST operation
-  await client.POST('/api/v1/me');
-  // @ts-expect-error GET /api/v1/me declares no request body
-  await client.GET('/api/v1/me', { body: { any: 'thing' } });
+  await transport.request('/api/v1/unknown', 'get');
+  // @ts-expect-error /api/v1/me declares no post operation
+  await transport.request('/api/v1/me', 'post');
   // @ts-expect-error getMe declares no query parameters
-  await client.GET('/api/v1/me', { params: { query: { unexpected: 'x' } } });
-  // @ts-expect-error MeResponse has no top-level displayName field
-  acceptString(await client.GET('/api/v1/me').then(({ data }) => data?.displayName));
+  await transport.request('/api/v1/me', 'get', { query: { unexpected: 'x' } });
+  // @ts-expect-error GET /api/v1/me declares no request body
+  await transport.request('/api/v1/me', 'get', { body: createCaseBody });
+  const result = await transport.request('/api/v1/me', 'get');
+  if (result.kind === 'data') {
+    // @ts-expect-error MeResponse has no top-level displayName field
+    acceptsString(result.data.displayName);
+  }
 }
 
-function acceptString(value: string | undefined): void {
-  void value;
-}
-
-void client;
+void transport;
 void positiveContract;
 void negativeContract;
 void (null as unknown as MeDataIsSchema);
+void (null as unknown as MeOperationIsGetMe);

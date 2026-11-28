@@ -1,6 +1,6 @@
 <view class="probe">
-  <view class="probe-title">FE-001 runtime compatibility probe</view>
-  <input class="probe-input" value="{{baseUrl}}" placeholder="http://host:port" bindinput="onBaseUrlInput" />
+  <view class="probe-title">FE-001 native wx.request probe</view>
+  <input class="probe-input" value="{{baseUrl}}" placeholder="http://host:8791" bindinput="onBaseUrlInput" />
   <button class="probe-run" bindtap="onRun" disabled="{{running}}">{{running ? 'running' : 'run probe'}}</button>
   <view class="probe-line" wx:for="{{lines}}" wx:key="index">
     <text class="probe-label">{{item.label}}</text>
