@@ -12,4 +12,8 @@ Page({
   onOpenProbe(): void {
     wx.navigateTo({ url: '/probes/runtime/index' });
   },
+
+  onOpenLifecycle(): void {
+    wx.navigateTo({ url: '/probes/lifecycle/index' });
+  },
 });

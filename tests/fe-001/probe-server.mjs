@@ -4,11 +4,13 @@ import { networkInterfaces } from 'node:os';
 const port = Number(process.env.PROBE_PORT ?? 8791);
 const observed = [];
 const chunksSent = new Map();
+let meMode = 'ok';
+let meDelayMs = 2500;
 
 function record(entry) {
   observed.unshift(entry);
   if (observed.length > 32) observed.pop();
-  console.log(`${new Date().toISOString()} ${entry.method} ${entry.path}${entry.note ? ` ${entry.note}` : ''}`);
+  console.log(`${new Date().toISOString()} ${entry.method} ${entry.path}${entry.note ? ` ${entry.note}` : ''} remote=${entry.remote ?? '?'} ua=${(entry.userAgent ?? '?').slice(0, 80)}`);
 }
 
 function json(res, status, body, headers = {}) {
@@ -26,8 +28,38 @@ const server = createServer((req, res) => {
     query,
     at: new Date().toISOString(),
     probeHeader: req.headers['x-probe-header'] ?? null,
+    authorization: req.headers.authorization ? req.headers.authorization.replace(/^Bearer .+$/i, 'Bearer <redacted>') : null,
+    remote: req.socket.remoteAddress ?? null,
+    userAgent: req.headers['user-agent'] ?? null,
   };
   record(entry);
+
+  if (path === '/probe-mode') {
+    meMode = query.mode ?? 'ok';
+    meDelayMs = Math.min(Number(query.ms ?? 2500), 30000);
+    json(res, 200, { mode: meMode, delayMs: meDelayMs });
+    return;
+  }
+
+  if (path === '/api/v1/me' && req.method === 'GET') {
+    const mode = meMode;
+    const syntheticMe = {
+      account: { id: '00000000-0000-4000-8000-000000000001', createdAt: '2026-01-01T00:00:00Z', status: 'ACTIVE' },
+      person: { id: '00000000-0000-4000-8000-000000000002', createdAt: '2026-01-01T00:00:00Z' },
+    };
+    entry.note = `me-mode=${mode}`;
+    const respond = () => {
+      if (res.writableEnded || res.destroyed) return;
+      if (mode === 'unauthorized' || mode === 'slow-unauthorized') {
+        json(res, 401, { code: 'UNAUTHENTICATED', message: 'probe unauthorized' });
+        return;
+      }
+      json(res, 200, syntheticMe);
+    };
+    if (mode.startsWith('slow')) setTimeout(respond, meDelayMs);
+    else respond();
+    return;
+  }
 
   if (path === '/ok' && req.method === 'GET') {
     json(res, 200, { probe: true, path, query }, { 'x-probe': 'ok', 'cache-control': 'no-store' });

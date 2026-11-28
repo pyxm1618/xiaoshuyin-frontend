@@ -17,6 +17,7 @@ interface Outcome {
   callbacks: string[];
   status: number | null;
   bodyText: string;
+  responseProbe: string | null;
   errMsg: string | null;
   lateSuccess: boolean;
   lateFail: boolean;
@@ -32,7 +33,8 @@ interface CaseResult {
 function text(value: unknown): string {
   if (typeof value === 'string') return value;
   try {
-    return JSON.stringify(value);
+    const encoded = JSON.stringify(value);
+    return encoded === undefined ? String(value) : encoded;
   } catch (error) {
     return String(value);
   }
@@ -76,6 +78,7 @@ function probeRequest(
     let settled = 0;
     let status: number | null = null;
     let body: unknown = undefined;
+    let responseProbe: string | null = null;
     let errMsg: string | null = null;
     let lateSuccess = false;
     let lateFail = false;
@@ -91,6 +94,7 @@ function probeRequest(
           callbacks,
           status,
           bodyText: bodyText(body),
+          responseProbe,
           errMsg,
           lateSuccess,
           lateFail,
@@ -112,6 +116,9 @@ function probeRequest(
         settled += 1;
         status = result.statusCode;
         body = result.data;
+        const headers = result.header as Record<string, unknown>;
+        const rawProbe = headers['x-probe'] !== undefined ? headers['x-probe'] : headers['X-Probe'];
+        if (rawProbe !== undefined) responseProbe = String(rawProbe);
         finish();
       },
       fail(error: WechatMiniprogram.GeneralCallbackResult) {
@@ -148,19 +155,12 @@ function probeRequest(
 
 function payloadOf(outcome: Outcome): Record<string, unknown> {
   const parsed = asObject(outcome.bodyText);
-  const payload = parsed === undefined ? undefined : asObject(parsed.payload);
-  return payload === undefined ? {} : payload;
-}
-
-function headerOf(outcome: Outcome): Record<string, unknown> {
-  const parsed = asObject(outcome.bodyText);
-  const header = parsed === undefined ? undefined : asObject(parsed.header);
-  return header === undefined ? {} : header;
+  return parsed === undefined ? {} : parsed;
 }
 
 Page({
   data: {
-    baseUrl: '',
+    baseUrl: 'http://192.168.2.135:8791',
     running: false,
     lines: [],
   } as ProbeData,
@@ -189,7 +189,8 @@ Page({
 
   async onRun(): Promise<void> {
     if (this.data.running) return;
-    const base = this.data.baseUrl.trim().replace(/\/+$/, '');
+    let base = this.data.baseUrl.trim().replace(/\/+$/, '');
+    if (base && base.indexOf('://') < 0) base = 'http://' + base;
     if (!base) {
       this.push('FAIL', 'base URL is empty');
       return;
@@ -237,9 +238,8 @@ Page({
       header: { 'X-Probe-Header': 'fe-001' },
     });
     const okPayload = payloadOf(ok);
-    const okHeader = headerOf(ok);
-    results.push(this.record('GET /ok', ok.settled === 1 && ok.status === 200 && okPayload.probe === true && okHeader['x-probe'] === 'ok',
-      'settled=' + ok.settled + ' status=' + text(ok.status) + ' callbacks=' + ok.callbacks.join('|') + ' header=' + text(okHeader['x-probe']) + ' ' + ok.durationMs + 'ms'));
+    results.push(this.record('GET /ok', ok.settled === 1 && ok.status === 200 && okPayload.probe === true && ok.responseProbe === 'ok',
+      'settled=' + ok.settled + ' status=' + text(ok.status) + ' callbacks=' + ok.callbacks.join('|') + ' header=' + text(ok.responseProbe) + ' ' + ok.durationMs + 'ms'));
 
     const echo = await probeRequest('GET /echo', {
       url: base + '/echo?a=1&b=two',
